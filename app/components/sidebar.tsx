@@ -4,14 +4,10 @@ import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
 import SettingsIcon from "../icons/settings.svg";
-import GithubIcon from "../icons/github.svg";
 import ChatGptIcon from "../icons/chatgpt.svg";
 import AddIcon from "../icons/add.svg";
 import DeleteIcon from "../icons/delete.svg";
-import MaskIcon from "../icons/mask.svg";
-import McpIcon from "../icons/mcp.svg";
 import DragIcon from "../icons/drag.svg";
-import DiscoveryIcon from "../icons/discovery.svg";
 
 import Locale from "../locales";
 
@@ -23,15 +19,15 @@ import {
   MIN_SIDEBAR_WIDTH,
   NARROW_SIDEBAR_WIDTH,
   Path,
-  REPO_URL,
 } from "../constant";
 
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
 import { Selector, showConfirm } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
+import { useAccessStore } from "../store/access";
 
 const DISCOVERY = [
   { name: Locale.Plugin.Name, path: Path.Plugins },
@@ -232,6 +228,37 @@ export function SideBar(props: { className?: string }) {
   const config = useAppConfig();
   const chatStore = useChatStore();
   const [mcpEnabled, setMcpEnabled] = useState(false);
+  const accessStore = useAccessStore();
+  const isAdmin = accessStore.accessCode === "admin";
+
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [inputPwd, setInputPwd] = useState("");
+  const [pwdError, setPwdError] = useState("");
+
+  const handleSettingsClick = () => {
+    setShowPwdModal(true);
+    setInputPwd("");
+    setPwdError("");
+  };
+
+  const handlePwdConfirm = async () => {
+    try {
+      const res = await fetch("/api/verify-admin-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: inputPwd }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setShowPwdModal(false);
+        navigate(Path.Settings);
+      } else {
+        setPwdError("密码错误，请重试！");
+      }
+    } catch (e) {
+      setPwdError("网络异常，请稍后重试！");
+    }
+  };
 
   useEffect(() => {
     // 检查 MCP 是否启用
@@ -255,7 +282,8 @@ export function SideBar(props: { className?: string }) {
         logo={<ChatGptIcon />}
         shouldNarrow={shouldNarrow}
       >
-        <div className={styles["sidebar-header-bar"]}>
+        {/* 隐藏顶部红框按钮：面具、发现 */}
+        {/* <div className={styles["sidebar-header-bar"]}>
           <IconButton
             icon={<MaskIcon />}
             text={shouldNarrow ? undefined : Locale.Mask.Name}
@@ -287,7 +315,8 @@ export function SideBar(props: { className?: string }) {
             onClick={() => setshowDiscoverySelector(true)}
             shadow
           />
-        </div>
+        </div> */}
+        {/* 隐藏结束 */}
         {showDiscoverySelector && (
           <Selector
             items={[
@@ -327,24 +356,150 @@ export function SideBar(props: { className?: string }) {
                 }}
               />
             </div>
-            <div className={styles["sidebar-action"]}>
-              <Link to={Path.Settings}>
-                <IconButton
-                  aria={Locale.Settings.Title}
-                  icon={<SettingsIcon />}
-                  shadow
-                />
-              </Link>
+            {/* 所有用户都可见设置按钮，点击弹出密码弹窗 */}
+            <div
+              className={styles["sidebar-action"]}
+              onClick={handleSettingsClick}
+            >
+              <IconButton
+                aria={Locale.Settings.Title}
+                icon={<SettingsIcon />}
+                shadow
+              />
             </div>
-            <div className={styles["sidebar-action"]}>
-              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                <IconButton
-                  aria={Locale.Export.MessageFromChatGPT}
-                  icon={<GithubIcon />}
-                  shadow
-                />
-              </a>
-            </div>
+            {/* 密码弹窗，全屏遮罩+内容居中，体验与登录页一致 */}
+            {showPwdModal && (
+              <div
+                style={{
+                  position: "fixed",
+                  zIndex: 99999,
+                  left: 0,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: "rgba(0,0,0,0.3)",
+                  backdropFilter: "blur(2px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 12,
+                    maxWidth: 350,
+                    width: "90vw",
+                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                    padding: 32,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  {/* 居中logo */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <img
+                      src="/favicon.ico"
+                      alt="logo"
+                      style={{ width: 48, height: 48 }}
+                    />
+                  </div>
+                  {/* 居中大标题 */}
+                  <div
+                    style={{
+                      fontSize: 24,
+                      fontWeight: "bold",
+                      textAlign: "center",
+                      marginBottom: 8,
+                    }}
+                  >
+                    请输入管理员密码
+                  </div>
+                  {/* 提示语 */}
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#666",
+                      textAlign: "center",
+                      marginBottom: 24,
+                    }}
+                  >
+                    请输入密码以访问设置页面
+                  </div>
+                  {/* 密码输入框 */}
+                  <input
+                    type="password"
+                    value={inputPwd}
+                    onChange={(e) => setInputPwd(e.target.value)}
+                    placeholder="请输入密码"
+                    style={{
+                      width: "100%",
+                      maxWidth: 320,
+                      padding: "12px",
+                      fontSize: "16px",
+                      borderRadius: "8px",
+                      border: "1px solid #ddd",
+                      marginBottom: "16px",
+                      boxSizing: "border-box",
+                      textAlign: "center",
+                      outline: "none",
+                    }}
+                  />
+                  {/* 错误提示 */}
+                  {pwdError && (
+                    <div
+                      style={{
+                        color: "red",
+                        fontSize: "14px",
+                        textAlign: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      {pwdError}
+                    </div>
+                  )}
+                  {/* 确认按钮 */}
+                  <button
+                    onClick={handlePwdConfirm}
+                    style={{
+                      padding: "10px 32px",
+                      background: "#1890aa",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontSize: "16px",
+                      cursor: "pointer",
+                      marginTop: 8,
+                      width: "100%",
+                      maxWidth: 320,
+                    }}
+                  >
+                    确认
+                  </button>
+                  {/* 关闭按钮 */}
+                  <button
+                    onClick={() => setShowPwdModal(false)}
+                    style={{
+                      marginTop: 16,
+                      background: "none",
+                      border: "none",
+                      color: "#888",
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         }
         secondaryAction={
