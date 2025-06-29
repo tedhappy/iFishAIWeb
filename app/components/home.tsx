@@ -233,9 +233,9 @@ export function useLoadData() {
 }
 
 export function Home() {
-  // useSwitchTheme();
+  useSwitchTheme();
   // useLoadData();
-  // useHtmlLang();
+  useHtmlLang();
 
   // useEffect(() => {
   //   console.log("[Config] got config from build time", getClientConfig());

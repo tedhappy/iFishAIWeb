@@ -11,23 +11,14 @@ import React, {
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
-import RenameIcon from "../icons/rename.svg";
-import EditIcon from "../icons/rename.svg";
-import ExportIcon from "../icons/share.svg";
 import ReturnIcon from "../icons/return.svg";
 import CopyIcon from "../icons/copy.svg";
 import SpeakIcon from "../icons/speak.svg";
 import SpeakStopIcon from "../icons/speak-stop.svg";
 import LoadingIcon from "../icons/three-dots.svg";
 import LoadingButtonIcon from "../icons/loading.svg";
-import PromptIcon from "../icons/prompt.svg";
-import MaskIcon from "../icons/mask.svg";
-import MaxIcon from "../icons/max.svg";
-import MinIcon from "../icons/min.svg";
 import ResetIcon from "../icons/reload.svg";
-import ReloadIcon from "../icons/reload.svg";
 import BreakIcon from "../icons/break.svg";
-import SettingsIcon from "../icons/chat-settings.svg";
 import DeleteIcon from "../icons/clear.svg";
 import PinIcon from "../icons/pin.svg";
 import ConfirmIcon from "../icons/confirm.svg";
@@ -40,12 +31,9 @@ import DarkIcon from "../icons/dark.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
-import RobotIcon from "../icons/robot.svg";
 import SizeIcon from "../icons/size.svg";
 import QualityIcon from "../icons/hd.svg";
 import StyleIcon from "../icons/palette.svg";
-import PluginIcon from "../icons/plugin.svg";
-import ShortcutkeyIcon from "../icons/shortcutkey.svg";
 import McpToolIcon from "../icons/tool.svg";
 import HeadphoneIcon from "../icons/headphone.svg";
 import {
@@ -74,7 +62,6 @@ import {
   supportsCustomSize,
   useMobileScreen,
   selectOrCopy,
-  showPlugins,
 } from "../utils";
 
 import { uploadImage as uploadImageRemote } from "@/app/utils/chat";
@@ -95,7 +82,6 @@ import {
   Modal,
   Selector,
   showConfirm,
-  showPrompt,
   showToast,
 } from "./ui-lib";
 import { useNavigate } from "react-router-dom";
@@ -116,7 +102,7 @@ import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
 import { getClientConfig } from "../config/client";
 import { useAllModels } from "../utils/hooks";
-import { ClientApi, MultimodalContent } from "../client/api";
+import { ClientApi } from "../client/api";
 import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
 
@@ -242,19 +228,12 @@ function PromptToast(props: {
   return (
     <div className={styles["prompt-toast"]} key="prompt-toast">
       {props.showToast && context.length > 0 && (
-        <div
-          className={clsx(styles["prompt-toast-inner"], "clickable")}
-          role="button"
-          onClick={() => props.setShowModal(true)}
-        >
+        <div className={clsx(styles["prompt-toast-inner"])} role="button">
           <BrainIcon />
           <span className={styles["prompt-toast-content"]}>
             {Locale.Context.Toast(context.length)}
           </span>
         </div>
-      )}
-      {props.showModal && (
-        <SessionConfigModel onClose={() => props.setShowModal(false)} />
       )}
     </div>
   );
@@ -613,13 +592,13 @@ export function ChatActions(props: {
             icon={<BottomIcon />}
           />
         )}
-        {props.hitBottom && (
+        {/* {props.hitBottom && (
           <ChatAction
             onClick={props.showPromptModal}
             text={Locale.Chat.InputActions.Settings}
             icon={<SettingsIcon />}
           />
-        )}
+        )} */}
 
         {showUploadImage && (
           <ChatAction
@@ -644,7 +623,7 @@ export function ChatActions(props: {
           }
         />
 
-        <ChatAction
+        {/* <ChatAction
           onClick={props.showPromptHints}
           text={Locale.Chat.InputActions.Prompt}
           icon={<PromptIcon />}
@@ -656,7 +635,7 @@ export function ChatActions(props: {
           }}
           text={Locale.Chat.InputActions.Masks}
           icon={<MaskIcon />}
-        />
+        /> */}
 
         <ChatAction
           text={Locale.Chat.InputActions.Clear}
@@ -673,11 +652,11 @@ export function ChatActions(props: {
           }}
         />
 
-        <ChatAction
+        {/* <ChatAction
           onClick={() => setShowModelSelector(true)}
           text={currentModelName}
           icon={<RobotIcon />}
-        />
+        /> */}
 
         {showModelSelector && (
           <Selector
@@ -795,7 +774,7 @@ export function ChatActions(props: {
           />
         )}
 
-        {showPlugins(currentProviderName, currentModel) && (
+        {/* {showPlugins(currentProviderName, currentModel) && (
           <ChatAction
             onClick={() => {
               if (pluginStore.getAll().length == 0) {
@@ -823,15 +802,15 @@ export function ChatActions(props: {
               });
             }}
           />
-        )}
+        )} */}
 
-        {!isMobileScreen && (
+        {/* {!isMobileScreen && (
           <ChatAction
             onClick={() => props.setShowShortcutKeyModal(true)}
             text={Locale.Chat.ShortcutKey.Title}
             icon={<ShortcutkeyIcon />}
           />
-        )}
+        )} */}
         {!isMobileScreen && <MCPAction />}
       </>
       <div className={styles["chat-input-actions-end"]}>
@@ -986,7 +965,7 @@ export function ShortcutKeyModal(props: { onClose: () => void }) {
   );
 }
 
-function _Chat() {
+function Chat() {
   type RenderMessage = ChatMessage & { preview?: boolean };
 
   const chatStore = useChatStore();
@@ -1712,7 +1691,7 @@ function _Chat() {
               {Locale.Chat.SubTitle(session.messages.length)}
             </div>
           </div>
-          <div className="window-actions">
+          {/* <div className="window-actions">
             <div className="window-action-button">
               <IconButton
                 icon={<ReloadIcon />}
@@ -1760,7 +1739,7 @@ function _Chat() {
                 />
               </div>
             )}
-          </div>
+          </div> */}
 
           <PromptToast
             showToast={!hitBottom}
@@ -1807,47 +1786,6 @@ function _Chat() {
                         <div className={styles["chat-message-container"]}>
                           <div className={styles["chat-message-header"]}>
                             <div className={styles["chat-message-avatar"]}>
-                              <div className={styles["chat-message-edit"]}>
-                                <IconButton
-                                  icon={<EditIcon />}
-                                  aria={Locale.Chat.Actions.Edit}
-                                  onClick={async () => {
-                                    const newMessage = await showPrompt(
-                                      Locale.Chat.Actions.Edit,
-                                      getMessageTextContent(message),
-                                      10,
-                                    );
-                                    let newContent:
-                                      | string
-                                      | MultimodalContent[] = newMessage;
-                                    const images = getMessageImages(message);
-                                    if (images.length > 0) {
-                                      newContent = [
-                                        { type: "text", text: newMessage },
-                                      ];
-                                      for (let i = 0; i < images.length; i++) {
-                                        newContent.push({
-                                          type: "image_url",
-                                          image_url: {
-                                            url: images[i],
-                                          },
-                                        });
-                                      }
-                                    }
-                                    chatStore.updateTargetSession(
-                                      session,
-                                      (session) => {
-                                        const m = session.mask.context
-                                          .concat(session.messages)
-                                          .find((m) => m.id === message.id);
-                                        if (m) {
-                                          m.content = newContent;
-                                        }
-                                      },
-                                    );
-                                  }}
-                                ></IconButton>
-                              </div>
                               {isUser ? (
                                 <Avatar avatar={config.avatar} />
                               ) : (
@@ -2164,8 +2102,4 @@ function _Chat() {
   );
 }
 
-export function Chat() {
-  const chatStore = useChatStore();
-  const session = chatStore.currentSession();
-  return <_Chat key={session.id}></_Chat>;
-}
+export { Chat };

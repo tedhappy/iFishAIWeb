@@ -46,7 +46,7 @@ export const DEFAULT_CONFIG = {
   fontSize: 14,
   fontFamily: "",
   theme: Theme.Auto as Theme,
-  tightBorder: !!config?.isApp,
+  tightBorder: true,
   sendPreviewBubble: true,
   enableAutoGenerateTitle: true,
   sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
@@ -245,7 +245,7 @@ export const useAppConfig = createPersistStore(
         state.modelConfig.template =
           state.modelConfig.template !== DEFAULT_INPUT_TEMPLATE
             ? state.modelConfig.template
-            : config?.template ?? DEFAULT_INPUT_TEMPLATE;
+            : (config?.template ?? DEFAULT_INPUT_TEMPLATE);
       }
 
       if (version < 4.1) {
