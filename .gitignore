@@ -47,3 +47,5 @@ dev
 
 # mcp config
 app/mcp/mcp_config.json
+
+package-lock.json
