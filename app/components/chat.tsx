@@ -2082,6 +2082,21 @@ function Chat() {
           </div>
         </div>
       </div>
+      {/* 备案信息区域 */}
+      <div className={styles["icp-police-info"]}>
+        <a href="https://beian.miit.gov.cn" target="_blank" rel="noreferrer">
+          蜀ICP备2025139299号
+        </a>
+        <span style={{ margin: "0 4px", color: "#ccc" }}>|</span>
+        <a
+          href="https://beian.mps.gov.cn/#/query/webSearch?code=51010602002838"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img src="/police.png" alt="公安备案" />
+          川公网安备51010602002838号
+        </a>
+      </div>
       {showExport && (
         <ExportMessageModal onClose={() => setShowExport(false)} />
       )}
