@@ -4,7 +4,6 @@ import styles from "./home.module.scss";
 
 import { IconButton } from "./button";
 import SettingsIcon from "../icons/settings.svg";
-import ChatGptIcon from "../icons/chatgpt.svg";
 import AddIcon from "../icons/add.svg";
 import DeleteIcon from "../icons/delete.svg";
 import DragIcon from "../icons/drag.svg";
@@ -277,9 +276,15 @@ export function SideBar(props: { className?: string }) {
       {...props}
     >
       <SideBarHeader
-        title="小鱼AI"
-        subTitle="你好，我是小鱼AI，你的智能聊天助手。"
-        logo={<ChatGptIcon />}
+        title="小鱼AI聊天助手"
+        subTitle="你好，我是小鱼，你的智能聊天助手。"
+        logo={
+          <img
+            src="/android-chrome-192x192.png"
+            alt="logo"
+            style={{ width: 48, height: 48, borderRadius: 12 }}
+          />
+        }
         shouldNarrow={shouldNarrow}
       >
         {/* 隐藏顶部红框按钮：面具、发现 */}

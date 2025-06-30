@@ -385,32 +385,7 @@
 }
 
 .chat-message-avatar {
-  position: relative;
-
-  .chat-message-edit {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all ease 0.3s;
-
-    button {
-      padding: 7px;
-    }
-  }
-
-  /* Specific styles for iOS devices */
-  @media screen and (max-device-width: 812px) and (-webkit-min-device-pixel-ratio: 2) {
-    @supports (-webkit-touch-callout: none) {
-      .chat-message-edit {
-        top: -8%;
-      }
-    }
-  }
+  display: none !important;
 }
 
 .chat-message-status {
@@ -751,4 +726,8 @@
       transform: translateX(0);
     }
   }
+}
+
+.chat-model-name {
+  display: none !important;
 }
