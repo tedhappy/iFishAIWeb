@@ -323,16 +323,15 @@
 
 .sidebar-tail {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding-top: 20px;
 }
 
 .sidebar-actions {
-  display: inline-flex;
-}
-
-.sidebar-action:not(:last-child) {
-  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
 }
 
 .loading-content {

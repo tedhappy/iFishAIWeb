@@ -230,22 +230,14 @@ function AuthorModal(props: { onClose: () => void }) {
 export function SideBarTail(props: {
   primaryAction?: React.ReactNode;
   secondaryAction?: React.ReactNode;
+  shouldNarrow?: boolean;
 }) {
-  const { primaryAction, secondaryAction } = props;
+  const { primaryAction, secondaryAction, shouldNarrow } = props;
   const [showAuthor, setShowAuthor] = useState(false);
 
   return (
     <div className={styles["sidebar-tail"]}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-          maxWidth: "100vw",
-        }}
-      >
+      <div className={styles["sidebar-actions"]}>
         {/* 设置按钮 */}
         {primaryAction && Array.isArray(primaryAction)
           ? primaryAction[1]
@@ -253,7 +245,7 @@ export function SideBarTail(props: {
         {/* 关于作者按钮 */}
         <IconButton
           icon={<GithubIcon />}
-          text="关于"
+          text={shouldNarrow ? undefined : "关于"}
           bordered
           onClick={() => setShowAuthor(true)}
         />
@@ -440,85 +432,37 @@ export function SideBar(props: { className?: string }) {
                 <div
                   style={{
                     background: "#fff",
-                    borderRadius: 12,
-                    maxWidth: 350,
-                    width: "90vw",
-                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                    borderRadius: 8,
                     padding: 32,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    minWidth: 320,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                   }}
                 >
-                  {/* 居中logo */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <img
-                      src="/favicon.ico"
-                      alt="logo"
-                      style={{ width: 48, height: 48 }}
-                    />
-                  </div>
-                  {/* 居中大标题 */}
-                  <div
-                    style={{
-                      fontSize: 24,
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      marginBottom: 8,
-                    }}
-                  >
+                  <div style={{ fontSize: 18, marginBottom: 16 }}>
                     请输入管理员密码
                   </div>
-                  {/* 提示语 */}
-                  <div
-                    style={{
-                      fontSize: 14,
-                      color: "#666",
-                      textAlign: "center",
-                      marginBottom: 24,
-                    }}
-                  >
-                    请输入密码以访问设置页面
-                  </div>
-                  {/* 密码输入框 */}
                   <input
                     type="password"
                     value={inputPwd}
                     onChange={(e) => setInputPwd(e.target.value)}
-                    placeholder="请输入密码"
                     style={{
+                      padding: "10px 16px",
+                      fontSize: 16,
+                      borderRadius: 6,
+                      border: "1px solid #eee",
+                      marginBottom: 8,
                       width: "100%",
                       maxWidth: 320,
-                      padding: "12px",
-                      fontSize: "16px",
-                      borderRadius: "8px",
-                      border: "1px solid #ddd",
-                      marginBottom: "16px",
-                      boxSizing: "border-box",
-                      textAlign: "center",
-                      outline: "none",
                     }}
                   />
-                  {/* 错误提示 */}
                   {pwdError && (
-                    <div
-                      style={{
-                        color: "red",
-                        fontSize: "14px",
-                        textAlign: "center",
-                        marginBottom: 8,
-                      }}
-                    >
+                    <div style={{ color: "red", marginBottom: 8 }}>
                       {pwdError}
                     </div>
                   )}
-                  {/* 确认按钮 */}
                   <button
                     onClick={handlePwdConfirm}
                     style={{
@@ -570,6 +514,7 @@ export function SideBar(props: { className?: string }) {
             shadow
           />
         }
+        shouldNarrow={shouldNarrow}
       />
     </SideBarContainer>
   );
