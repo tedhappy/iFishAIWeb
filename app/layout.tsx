@@ -9,10 +9,10 @@ import { GoogleTagManager, GoogleAnalytics } from "@next/third-parties/google";
 import { getServerSideConfig } from "./config/server";
 
 export const metadata: Metadata = {
-  title: "小鱼AI",
+  title: "小鱼AI - 你的智能聊天助手",
   description: "你好，我是小鱼AI，你的智能聊天助手。",
   appleWebApp: {
-    title: "小鱼AI",
+    title: "小鱼AI - 你的智能聊天助手",
     statusBarStyle: "default",
   },
 };

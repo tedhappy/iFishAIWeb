@@ -217,10 +217,66 @@ function AuthorModal(props: { onClose: () => void }) {
           />,
         ]}
       >
-        <div style={{ padding: "16px 0", textAlign: "center", fontSize: 16 }}>
-          <div>作者：小鱼AI聊天助手</div>
-          <div>邮箱：fishaiweb@outlook.com</div>
-          <div>微信：fishaiweb</div>
+        {/* 项目功能简介 */}
+        <div
+          style={{
+            padding: "16px 0",
+            textAlign: "left",
+            fontSize: 16,
+            lineHeight: 1.8,
+          }}
+        >
+          <div style={{ marginBottom: 12, textIndent: "2em" }}>
+            <span role="img" aria-label="robot" style={{ marginRight: 6 }}>
+              🤖
+            </span>
+            本网站是一个多功能智能对话平台，支持多种AI
+            Agent（智能体）和丰富的应用场景。用户可以通过选择不同的Agent，体验智能服务。平台界面简洁，操作便捷，致力于为用户提供高效、智能的AI助手体验。
+          </div>
+          {/* 作者联系方式 */}
+          <div>
+            <span role="img" aria-label="author">
+              👤
+            </span>{" "}
+            作者：王浩宇
+          </div>
+          <div>
+            <span role="img" aria-label="email">
+              📧
+            </span>{" "}
+            邮箱：why0229@foxmail.com
+          </div>
+          <div>
+            <span role="img" aria-label="wechat">
+              💬
+            </span>{" "}
+            微信：ted_happy（请备注来意）
+          </div>
+          <div>
+            <span role="img" aria-label="github">
+              🌐
+            </span>{" "}
+            Github：
+            <a
+              href="https://github.com/tedhappy"
+              target="_blank"
+              style={{ color: "inherit", textDecoration: "none" }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.textDecoration = "underline")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.textDecoration = "none")
+              }
+            >
+              https://github.com/tedhappy
+            </a>
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <span role="img" aria-label="idea" style={{ marginRight: 6 }}>
+              ✨
+            </span>
+            如果你对 AI 技术、行业应用有任何想法，欢迎随时找我交流学习～
+          </div>
         </div>
       </Modal>
     </div>
@@ -448,14 +504,21 @@ export function SideBar(props: { className?: string }) {
                     type="password"
                     value={inputPwd}
                     onChange={(e) => setInputPwd(e.target.value)}
+                    autoFocus
                     style={{
-                      padding: "10px 16px",
+                      borderRadius: 10,
+                      border: "1px solid var(--primary)",
+                      boxShadow: "0 -2px 5px rgba(0, 0, 0, 0.03)",
+                      backgroundColor: "var(--white)",
+                      color: "var(--black)",
+                      fontFamily: "inherit",
+                      padding: "10px 14px",
                       fontSize: 16,
-                      borderRadius: 6,
-                      border: "1px solid #eee",
                       marginBottom: 8,
                       width: "100%",
                       maxWidth: 320,
+                      outline: "none",
+                      boxSizing: "border-box",
                     }}
                   />
                   {pwdError && (

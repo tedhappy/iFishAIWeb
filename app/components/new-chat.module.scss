@@ -26,20 +26,12 @@
     animation: slide-in ease 0.3s;
 
     .mask-card {
-      padding: 20px 10px;
-      border: var(--border-in-light);
-      box-shadow: var(--card-shadow);
-      border-radius: 14px;
-      background-color: var(--white);
-      transform: scale(1);
-
-      &:first-child {
-        transform: rotate(-15deg) translateY(5px);
-      }
-
-      &:last-child {
-        transform: rotate(15deg) translateY(5px);
-      }
+      padding: 0;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+      background: none;
+      transform: none;
     }
   }
 
@@ -105,4 +97,24 @@
       }
     }
   }
+}
+
+.img-gradient-mask {
+  position: relative;
+  display: inline-block;
+}
+
+.img-gradient-mask img {
+  display: block;
+}
+
+.img-gradient-mask::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px; // 渐变高度可根据需要调整
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, #fff 100%);
 }

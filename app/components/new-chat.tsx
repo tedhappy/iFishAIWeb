@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Path } from "../constant";
 import { IconButton } from "./button";
-import { EmojiAvatar } from "./emoji";
 import styles from "./new-chat.module.scss";
 
 import LeftIcon from "../icons/left.svg";
@@ -97,13 +96,20 @@ export function NewChat() {
       </div>
       <div className={styles["mask-cards"]}>
         <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f606" size={24} />
-        </div>
-        <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f916" size={24} />
-        </div>
-        <div className={styles["mask-card"]}>
-          <EmojiAvatar avatar="1f479" size={24} />
+          <div className={styles["img-gradient-mask"]}>
+            <img
+              src="/mask-top.png"
+              style={{
+                maxWidth: "250px",
+                maxHeight: "250px",
+                width: "auto",
+                height: "auto",
+                background: "#fff",
+                display: "block",
+              }}
+              alt="mask-top"
+            />
+          </div>
         </div>
       </div>
 
