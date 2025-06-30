@@ -76,27 +76,21 @@
 
 .sidebar-drag {
   $width: 14px;
+
   position: absolute;
   top: 0;
   right: 0;
-  width: $width;
   height: 100%;
-  cursor: col-resize;
+  width: $width;
+  background-color: rgba($color: #000000, $alpha: 0);
+  cursor: ew-resize;
+  transition: all ease 0.3s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: background-color 0.2s;
-  user-select: none;
+
   svg {
-    opacity: 0.1;
-    transition: opacity 0.2s;
-  }
-  &:hover {
-    background: rgba(0, 0, 0, 0.04);
-    svg {
-      opacity: 0.4;
-    }
+    opacity: 0;
+    margin-left: -2px;
   }
 }
 
