@@ -7,6 +7,7 @@ import SettingsIcon from "../icons/settings.svg";
 import AddIcon from "../icons/add.svg";
 import DeleteIcon from "../icons/delete.svg";
 import DragIcon from "../icons/drag.svg";
+import GithubIcon from "../icons/github.svg";
 
 import Locale from "../locales";
 
@@ -23,7 +24,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { isIOS, useMobileScreen } from "../utils";
 import dynamic from "next/dynamic";
-import { Selector, showConfirm } from "./ui-lib";
+import { Selector, showConfirm, Modal } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
 import { useAccessStore } from "../store/access";
@@ -205,16 +206,65 @@ export function SideBarBody(props: {
   );
 }
 
+function AuthorModal(props: { onClose: () => void }) {
+  return (
+    <div className="modal-mask">
+      <Modal
+        title="关于作者"
+        onClose={props.onClose}
+        actions={[
+          <IconButton
+            key="close"
+            onClick={props.onClose}
+            text="关闭"
+            bordered
+          />,
+        ]}
+      >
+        <div style={{ padding: "16px 0", textAlign: "center", fontSize: 16 }}>
+          <div>作者：小鱼AI聊天助手</div>
+          <div>邮箱：fishaiweb@outlook.com</div>
+          <div>微信：fishaiweb</div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
 export function SideBarTail(props: {
   primaryAction?: React.ReactNode;
   secondaryAction?: React.ReactNode;
 }) {
   const { primaryAction, secondaryAction } = props;
+  const [showAuthor, setShowAuthor] = useState(false);
 
   return (
     <div className={styles["sidebar-tail"]}>
-      <div className={styles["sidebar-actions"]}>{primaryAction}</div>
-      <div className={styles["sidebar-actions"]}>{secondaryAction}</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          maxWidth: "100vw",
+        }}
+      >
+        {/* 设置按钮 */}
+        {primaryAction && Array.isArray(primaryAction)
+          ? primaryAction[1]
+          : primaryAction}
+        {/* 关于作者按钮 */}
+        <IconButton
+          icon={<GithubIcon />}
+          text="关于作者"
+          bordered
+          onClick={() => setShowAuthor(true)}
+        />
+        {/* 新的助手按钮 */}
+        {secondaryAction}
+      </div>
+      {showAuthor && <AuthorModal onClose={() => setShowAuthor(false)} />}
     </div>
   );
 }
@@ -369,6 +419,8 @@ export function SideBar(props: { className?: string }) {
               <IconButton
                 aria={Locale.Settings.Title}
                 icon={<SettingsIcon />}
+                text={shouldNarrow ? undefined : Locale.Settings.Title}
+                bordered
                 shadow
               />
             </div>
