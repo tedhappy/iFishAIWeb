@@ -71,7 +71,7 @@ export function NewChat() {
       maskRef.current.scrollLeft =
         (maskRef.current.scrollWidth - maskRef.current.clientWidth) / 2;
     }
-  }, [groups]);
+  }, [masks]);
 
   return (
     <div className={styles["new-chat"]}>
@@ -133,16 +133,8 @@ export function NewChat() {
       */}
 
       <div className={styles["masks"]} ref={maskRef}>
-        {groups.map((masks, i) => (
-          <div key={i} className={styles["mask-row"]}>
-            {masks.map((mask, index) => (
-              <MaskItem
-                key={index}
-                mask={mask}
-                onClick={() => startChat(mask)}
-              />
-            ))}
-          </div>
+        {masks.map((mask, index) => (
+          <MaskItem key={index} mask={mask} onClick={() => startChat(mask)} />
         ))}
       </div>
     </div>

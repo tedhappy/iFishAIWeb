@@ -42,14 +42,14 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
   if (serverConfig.needCode && !serverConfig.codes.has(hashedCode) && !apiKey) {
     return {
       error: true,
-      msg: !accessCode ? "empty access code" : "wrong access code",
+      msg: "当前助手无法回答您的问题，请联系管理员",
     };
   }
 
   if (serverConfig.hideUserApiKey && !!apiKey) {
     return {
       error: true,
-      msg: "you are not allowed to access with your own api key",
+      msg: "当前助手无法回答您的问题，请联系管理员",
     };
   }
 

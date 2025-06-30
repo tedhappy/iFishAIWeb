@@ -20,7 +20,6 @@ import LoadingButtonIcon from "../icons/loading.svg";
 import ResetIcon from "../icons/reload.svg";
 import BreakIcon from "../icons/break.svg";
 import DeleteIcon from "../icons/clear.svg";
-import PinIcon from "../icons/pin.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 import CloseIcon from "../icons/close.svg";
 import CancelIcon from "../icons/cancel.svg";
@@ -1837,11 +1836,11 @@ function Chat() {
                                         }
                                       />
 
-                                      <ChatAction
+                                      {/* <ChatAction
                                         text={Locale.Chat.Actions.Pin}
                                         icon={<PinIcon />}
                                         onClick={() => onPinMessage(message)}
-                                      />
+                                      /> */}
                                       <ChatAction
                                         text={Locale.Chat.Actions.Copy}
                                         icon={<CopyIcon />}

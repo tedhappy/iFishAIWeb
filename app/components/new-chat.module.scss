@@ -2,11 +2,13 @@
 
 .new-chat {
   height: 100%;
+  min-height: 100vh;
   width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 40px;
 
   .mask-header {
     display: flex;
@@ -66,56 +68,40 @@
   }
 
   .masks {
-    flex-grow: 1;
+    flex-grow: 0;
     width: 100%;
     overflow: auto;
-    align-items: center;
-    padding-top: 20px;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-
-    /* 去除模糊和渐变遮罩效果 */
-    /* -webkit-mask-image: $linear; */
-    /* mask-image: $linear; */
-
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px 16px;
+    padding-top: 20px;
     animation: slide-in ease 0.5s;
 
-    .mask-row {
+    .mask {
       display: flex;
-      justify-content: center;
-      margin-bottom: 10px;
+      align-items: center;
+      padding: 10px 14px;
+      border: var(--border-in-light);
+      box-shadow: var(--card-shadow);
+      background-color: var(--white);
+      border-radius: 10px;
+      min-width: 160px;
+      transform: scale(1);
+      cursor: pointer;
+      transition: all ease 0.3s;
+      margin: 0;
 
-      @for $i from 1 to 10 {
-        &:nth-child(#{$i * 2}) {
-          margin-left: 50px;
-        }
+      &:hover {
+        transform: translateY(-5px) scale(1.1);
+        z-index: 999;
+        border-color: var(--primary);
       }
 
-      .mask {
-        display: flex;
-        align-items: center;
-        padding: 10px 14px;
-        border: var(--border-in-light);
-        box-shadow: var(--card-shadow);
-        background-color: var(--white);
-        border-radius: 10px;
-        margin-right: 10px;
-        max-width: 8em;
-        transform: scale(1);
-        cursor: pointer;
-        transition: all ease 0.3s;
-
-        &:hover {
-          transform: translateY(-5px) scale(1.1);
-          z-index: 999;
-          border-color: var(--primary);
-        }
-
-        .mask-name {
-          margin-left: 10px;
-          font-size: 14px;
-        }
+      .mask-name {
+        margin-left: 10px;
+        font-size: 14px;
       }
     }
   }
