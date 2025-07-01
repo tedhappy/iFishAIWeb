@@ -64,10 +64,10 @@
     padding: 4px 10px;
     animation: slide-in ease 0.3s;
     box-shadow: var(--card-shadow);
-    transition: width ease 0.3s;
+    transition: background 0.3s, box-shadow 0.3s;
     align-items: center;
     height: 16px;
-    width: auto;
+    width: auto !important;
     overflow: visible;
 
     .text {
@@ -81,12 +81,9 @@
     }
 
     &:hover {
-      --delay: 0.5s;
-      width: var(--full-width);
-      transition-delay: var(--delay);
-
+      background: #f5f5f5;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       .text {
-        transition-delay: var(--delay);
         opacity: 1;
         transform: translate(0);
       }

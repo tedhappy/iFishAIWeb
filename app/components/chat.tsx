@@ -402,6 +402,11 @@ export function ChatAction(props: {
     });
   }
 
+  // 修复首次悬浮错位：初次渲染时就计算宽度
+  useEffect(() => {
+    updateWidth();
+  }, []);
+
   return (
     <div
       className={clsx(styles["chat-input-action"], "clickable")}
