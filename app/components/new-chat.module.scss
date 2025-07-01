@@ -21,8 +21,8 @@
 
   .mask-cards {
     display: flex;
-    margin-top: 5vh;
-    margin-bottom: 20px;
+    margin-top: 1vh;
+    margin-bottom: 6px;
     animation: slide-in ease 0.3s;
 
     .mask-card {
@@ -36,13 +36,15 @@
   }
 
   .title {
-    font-size: 32px;
+    font-size: 20px;
     font-weight: bolder;
-    margin-bottom: 1vh;
+    margin-bottom: 0.3vh;
     animation: slide-in ease 0.35s;
   }
 
   .sub-title {
+    font-size: 13px;
+    margin-bottom: 4px;
     animation: slide-in ease 0.4s;
   }
 
@@ -106,6 +108,11 @@
 
 .img-gradient-mask img {
   display: block;
+  max-width: 150px;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
 }
 
 .img-gradient-mask::after {

@@ -100,8 +100,6 @@ export function NewChat() {
             <img
               src="/mask-top.png"
               style={{
-                maxWidth: "250px",
-                maxHeight: "250px",
                 width: "auto",
                 height: "auto",
                 background: "#fff",
