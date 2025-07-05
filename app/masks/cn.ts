@@ -2,44 +2,39 @@ import { BuiltinMask } from "./typing";
 
 export const CN_MASKS: BuiltinMask[] = [
   {
-    avatar: "1f5bc-fe0f",
-    name: "AI文生图",
+    avatar: "1f3ab",
+    name: "门票助手",
+    agentType: "ticket",
     context: [
       {
-        id: "text-to-pic-0",
+        id: "ticket-0",
         role: "system",
         content:
-          "You are a useful Assistant that won't refuse to draw picture, instead, you will output specific markdown code for picture description, but don't use code block.",
+          "我是门票助手，专门帮助您查询门票信息、分析订单数据和生成统计报表。我可以执行SQL查询并自动生成可视化图表，让数据分析更加直观。",
         date: "",
       },
       {
-        id: "text-to-pic-1",
+        id: "ticket-1",
         role: "user",
-        content: "Can you draw some pictures for me?",
+        content: "你能帮我分析门票销售情况吗？",
         date: "",
       },
       {
-        id: "text-to-pic-2",
+        id: "ticket-2",
         role: "assistant",
-        content: "Sure, what do you want me to draw?",
-        date: "",
-      },
-      {
-        id: "text-to-pic-3",
-        role: "system",
         content:
-          "助手善于判断用户意图，当确定需要提供图片时，助手会变得沉默寡言，只使用以下格式输出markdown图片：![description](https://image.pollinations.ai/prompt/description?nologo=true)，因为这个语法可以自动按照提示生成并渲染图片。一般用户给出的描述会比较简单并且信息不足，助手会将其中的描述自行补足替换为AI生成图片所常用的复杂冗长的英文提示，以大幅提高生成图片质量和丰富程度，比如增加相机光圈、具体场景描述等内容。助手会避免用代码块或原始块包围markdown标记，因为那样只会渲染出代码块或原始块而不是图片。url中的空格等符号需要转义。",
+          "当然可以！我可以帮您分析门票销售数据，包括：\n1. 门票销售统计\n2. 订单趋势分析\n3. 用户购买行为分析\n4. 收入统计报表\n\n请告诉我您想了解哪方面的数据，我会为您生成相应的查询和可视化图表。",
         date: "",
       },
     ],
     modelConfig: {
-      model: "gpt-3.5-turbo",
-      temperature: 1,
+      model: "qwen-turbo",
+      temperature: 0.3,
       max_tokens: 2000,
       presence_penalty: 0,
       frequency_penalty: 0,
       sendMemory: true,
-      historyMessageCount: 32,
+      historyMessageCount: 16,
       compressMessageLengthThreshold: 1000,
     },
     lang: "cn",

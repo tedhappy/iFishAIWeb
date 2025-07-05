@@ -1,0 +1,90 @@
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any
+import os
+import dashscope
+from qwen_agent.agents import Assistant
+
+class BaseAgent(ABC):
+    """Agent基类，定义所有Agent的通用接口"""
+    
+    def __init__(self, agent_id: str, user_id: str):
+        self.agent_id = agent_id
+        self.user_id = user_id
+        self.session_id = f"{user_id}_{agent_id}"
+        self.messages = []  # 会话历史
+        
+        # 配置DashScope
+        dashscope.api_key = os.getenv('ALIBABA_API_KEY', '')
+        dashscope.timeout = 30
+        
+        # 初始化qwen-agent
+        self.bot = self._init_agent()
+    
+    @abstractmethod
+    def _init_agent(self) -> Assistant:
+        """初始化具体的Agent实例"""
+        pass
+    
+    @abstractmethod
+    def get_system_prompt(self) -> str:
+        """获取系统提示词"""
+        pass
+    
+    @abstractmethod
+    def get_function_list(self) -> List[str]:
+        """获取可用的工具函数列表"""
+        pass
+    
+    def chat(self, user_input: str, file_path: str = None) -> Dict[str, Any]:
+        """处理用户输入并返回响应"""
+        try:
+            # 构建消息
+            if file_path:
+                message = {
+                    'role': 'user', 
+                    'content': [{'text': user_input}, {'file': file_path}]
+                }
+            else:
+                message = {'role': 'user', 'content': user_input}
+            
+            self.messages.append(message)
+            
+            # 调用qwen-agent
+            response = []
+            for resp in self.bot.run(self.messages):
+                response = resp
+            
+            self.messages.extend(response)
+            
+            # 提取最后的助手回复
+            assistant_reply = None
+            for msg in reversed(response):
+                if msg.get('role') == 'assistant':
+                    assistant_reply = msg.get('content', '')
+                    break
+            
+            return {
+                'success': True,
+                'response': assistant_reply,
+                'session_id': self.session_id,
+                'message_count': len(self.messages)
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'session_id': self.session_id
+            }
+    
+    def get_history(self) -> List[Dict[str, Any]]:
+        """获取会话历史"""
+        return self.messages
+    
+    def clear_history(self):
+        """清空会话历史"""
+        self.messages = []
+    
+    def load_history(self, messages: List[Dict[str, Any]]):
+        """加载历史消息"""
+        self.messages = messages

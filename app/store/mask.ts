@@ -20,6 +20,7 @@ export type Mask = {
   plugin?: string[];
   enableArtifacts?: boolean;
   enableCodeFold?: boolean;
+  agentType?: string;
 };
 
 export const DEFAULT_MASK_STATE = {

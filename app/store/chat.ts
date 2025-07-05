@@ -412,6 +412,16 @@ export const useChatStore = createPersistStore(
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
 
+        // Check if this session has agent configuration
+        const agentType = (session.mask as any).agentType;
+        const maskId = session.mask.id;
+
+        if (agentType) {
+          // Use Agent API
+          return get().callAgentAPI(content, attachImages, agentType, maskId);
+        }
+
+        // Original LLM API logic
         // MCP Response no need to fill template
         let mContent: string | MultimodalContent[] = isMcpResponse
           ? content
@@ -525,6 +535,108 @@ export const useChatStore = createPersistStore(
             );
           },
         });
+      },
+
+      async callAgentAPI(
+        content: string,
+        attachImages?: string[],
+        agentType?: string,
+        maskId?: string,
+      ) {
+        const session = get().currentSession();
+        const userId = "user_" + Date.now(); // Simple user ID generation
+
+        // Create user message
+        let userMessage: ChatMessage = createMessage({
+          role: "user",
+          content: content,
+        });
+
+        // Create bot message
+        const botMessage: ChatMessage = createMessage({
+          role: "assistant",
+          streaming: true,
+          model: agentType || "agent",
+        });
+
+        // Save messages to session
+        get().updateTargetSession(session, (session) => {
+          session.messages = session.messages.concat([userMessage, botMessage]);
+        });
+
+        try {
+          // Initialize agent session if not exists
+          const sessionId = (session as any).agentSessionId;
+          if (!sessionId) {
+            const initResponse = await fetch(
+              "http://localhost:5000/api/agent/init",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: userId,
+                  mask_id: maskId || "default",
+                  agent_type: agentType || "ticket",
+                }),
+              },
+            );
+
+            if (!initResponse.ok) {
+              throw new Error("Failed to initialize agent session");
+            }
+
+            const initData = await initResponse.json();
+            (session as any).agentSessionId = initData.session_id;
+          }
+
+          // Send message to agent
+          const chatResponse = await fetch(
+            "http://localhost:5000/api/agent/chat",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                session_id: (session as any).agentSessionId,
+                message: content,
+                file_paths: attachImages || [],
+              }),
+            },
+          );
+
+          if (!chatResponse.ok) {
+            throw new Error("Failed to send message to agent");
+          }
+
+          const responseData = await chatResponse.json();
+
+          // Update bot message with response
+          botMessage.streaming = false;
+          botMessage.content =
+            responseData.response || "No response from agent";
+          botMessage.date = new Date().toLocaleString();
+
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
+
+          get().onNewMessage(botMessage, session);
+        } catch (error) {
+          console.error("[Agent API] Error:", error);
+
+          // Update bot message with error
+          botMessage.streaming = false;
+          botMessage.content = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+          botMessage.isError = true;
+          userMessage.isError = true;
+
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
+        }
       },
 
       getMemoryPrompt() {

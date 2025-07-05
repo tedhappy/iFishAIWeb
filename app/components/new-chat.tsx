@@ -49,7 +49,17 @@ export function NewChat() {
 
   const startChat = (mask?: Mask) => {
     setTimeout(() => {
-      chatStore.newSession(mask);
+      // 为mask设置agentType
+      const agentType = "ticket"; // 默认使用门票助手
+      const updatedMask = mask
+        ? {
+            ...mask,
+            agentType: agentType,
+          }
+        : undefined;
+
+      chatStore.newSession(updatedMask);
+      // 跳转到对话页面
       navigate(Path.Chat);
     }, 10);
   };
