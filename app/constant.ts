@@ -586,6 +586,7 @@ const bytedanceModels = [
 
 const alibabaModes = [
   "qwen-turbo",
+  "qwen-turbo-latest",
   "qwen-plus",
   "qwen-max",
   "qwen-max-0428",
@@ -679,19 +680,33 @@ const siliconflowModels = [
   "Pro/deepseek-ai/DeepSeek-V3",
 ];
 
-let seq = 1000; // 内置的模型序号生成器从1000开始
+let seq = 100; // 内置的模型序号生成器从100开始，阿里巴巴模型优先
 export const DEFAULT_MODELS = [
-  ...openaiModels.map((name) => ({
+  // 阿里巴巴模型放在最前面，确保优先选择
+  ...alibabaModes.map((name, index) => ({
     name,
     available: true,
-    sorted: seq++, // Global sequence sort(index)
+    sorted: seq++,
+    isDefault: name === "qwen-turbo-latest", // 设置默认模型
     provider: {
-      id: "openai",
-      providerName: "OpenAI",
-      providerType: "openai",
-      sorted: 1, // 这里是固定的，确保顺序与之前内置的版本一致
+      id: "alibaba",
+      providerName: "Alibaba",
+      providerType: "alibaba",
+      sorted: 1, // 阿里巴巴排在第一位
     },
   })),
+  // OpenAI models are disabled
+  // ...openaiModels.map((name) => ({
+  //   name,
+  //   available: false, // Disabled OpenAI models
+  //   sorted: seq++,
+  //   provider: {
+  //     id: "openai",
+  //     providerName: "OpenAI",
+  //     providerType: "openai",
+  //     sorted: 1,
+  //   },
+  // })),
   ...openaiModels.map((name) => ({
     name,
     available: true,
@@ -747,17 +762,18 @@ export const DEFAULT_MODELS = [
       sorted: 6,
     },
   })),
-  ...alibabaModes.map((name) => ({
-    name,
-    available: true,
-    sorted: seq++,
-    provider: {
-      id: "alibaba",
-      providerName: "Alibaba",
-      providerType: "alibaba",
-      sorted: 7,
-    },
-  })),
+  // 阿里巴巴模型已在前面定义，避免重复
+  // ...alibabaModes.map((name) => ({
+  //   name,
+  //   available: true,
+  //   sorted: seq++,
+  //   provider: {
+  //     id: "alibaba",
+  //     providerName: "Alibaba",
+  //     providerType: "alibaba",
+  //     sorted: 7,
+  //   },
+  // })),
   ...tencentModels.map((name) => ({
     name,
     available: true,

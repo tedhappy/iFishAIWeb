@@ -269,28 +269,31 @@ export function getHeaders(ignoreHeaders: boolean = false) {
     const apiKey = isGoogle
       ? accessStore.googleApiKey
       : isAzure
-      ? accessStore.azureApiKey
-      : isAnthropic
-      ? accessStore.anthropicApiKey
-      : isByteDance
-      ? accessStore.bytedanceApiKey
-      : isAlibaba
-      ? accessStore.alibabaApiKey
-      : isMoonshot
-      ? accessStore.moonshotApiKey
-      : isXAI
-      ? accessStore.xaiApiKey
-      : isDeepSeek
-      ? accessStore.deepseekApiKey
-      : isChatGLM
-      ? accessStore.chatglmApiKey
-      : isSiliconFlow
-      ? accessStore.siliconflowApiKey
-      : isIflytek
-      ? accessStore.iflytekApiKey && accessStore.iflytekApiSecret
-        ? accessStore.iflytekApiKey + ":" + accessStore.iflytekApiSecret
-        : ""
-      : accessStore.openaiApiKey;
+        ? accessStore.azureApiKey
+        : isAnthropic
+          ? accessStore.anthropicApiKey
+          : isByteDance
+            ? accessStore.bytedanceApiKey
+            : isAlibaba
+              ? accessStore.alibabaApiKey
+              : isMoonshot
+                ? accessStore.moonshotApiKey
+                : isXAI
+                  ? accessStore.xaiApiKey
+                  : isDeepSeek
+                    ? accessStore.deepseekApiKey
+                    : isChatGLM
+                      ? accessStore.chatglmApiKey
+                      : isSiliconFlow
+                        ? accessStore.siliconflowApiKey
+                        : isIflytek
+                          ? accessStore.iflytekApiKey &&
+                            accessStore.iflytekApiSecret
+                            ? accessStore.iflytekApiKey +
+                              ":" +
+                              accessStore.iflytekApiSecret
+                            : ""
+                          : accessStore.openaiApiKey;
     return {
       isGoogle,
       isAzure,
@@ -313,10 +316,10 @@ export function getHeaders(ignoreHeaders: boolean = false) {
     return isAzure
       ? "api-key"
       : isAnthropic
-      ? "x-api-key"
-      : isGoogle
-      ? "x-goog-api-key"
-      : "Authorization";
+        ? "x-api-key"
+        : isGoogle
+          ? "x-goog-api-key"
+          : "Authorization";
   }
 
   const {
@@ -382,7 +385,15 @@ export function getClientApi(provider: ServiceProvider): ClientApi {
       return new ClientApi(ModelProvider.ChatGLM);
     case ServiceProvider.SiliconFlow:
       return new ClientApi(ModelProvider.SiliconFlow);
+    case ServiceProvider.OpenAI:
+    case ServiceProvider.Azure:
+      // OpenAI和Azure被禁用，重定向到阿里巴巴
+      console.warn(
+        `[getClientApi] ${provider} is disabled, redirecting to Alibaba`,
+      );
+      return new ClientApi(ModelProvider.Qwen);
     default:
-      return new ClientApi(ModelProvider.GPT);
+      // 默认使用阿里巴巴而不是OpenAI
+      return new ClientApi(ModelProvider.Qwen);
   }
 }

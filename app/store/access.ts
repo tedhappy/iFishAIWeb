@@ -63,7 +63,7 @@ const DEFAULT_ACCESS_STATE = {
   accessCode: "",
   useCustomConfig: false,
 
-  provider: ServiceProvider.OpenAI,
+  provider: ServiceProvider.Alibaba,
 
   // openai
   openaiUrl: DEFAULT_OPENAI_URL,
@@ -139,7 +139,7 @@ const DEFAULT_ACCESS_STATE = {
   disableGPT4: false,
   disableFastLink: false,
   customModels: "",
-  defaultModel: "",
+  defaultModel: "qwen-turbo-latest@alibaba",
   visionModels: "",
 
   // tts config

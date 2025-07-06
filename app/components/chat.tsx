@@ -510,7 +510,7 @@ export function ChatActions(props: {
   // switch model
   const currentModel = session.mask.modelConfig.model;
   const currentProviderName =
-    session.mask.modelConfig?.providerName || ServiceProvider.OpenAI;
+    session.mask.modelConfig?.providerName || ServiceProvider.Alibaba;
   const allModels = useAllModels();
   const models = useMemo(() => {
     const filteredModels = allModels.filter((m) => m.available);
@@ -814,7 +814,8 @@ export function ChatActions(props: {
             icon={<ShortcutkeyIcon />}
           />
         )} */}
-        {!isMobileScreen && <MCPAction />}
+        {/* 隐藏MCP按钮 */}
+        {/* {!isMobileScreen && <MCPAction />} */}
       </>
       <div className={styles["chat-input-actions-end"]}></div>
     </div>

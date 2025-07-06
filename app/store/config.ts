@@ -64,8 +64,8 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "gpt-4o-mini" as ModelType,
-    providerName: "OpenAI" as ServiceProvider,
+    model: "qwen-turbo-latest" as ModelType,
+    providerName: "Alibaba" as ServiceProvider,
     temperature: 0.5,
     top_p: 1,
     max_tokens: 4000,
@@ -94,7 +94,7 @@ export const DEFAULT_CONFIG = {
 
   realtimeConfig: {
     enable: false,
-    provider: "OpenAI" as ServiceProvider,
+    provider: "Azure" as ServiceProvider,
     model: "gpt-4o-realtime-preview-2024-10-01",
     apiKey: "",
     azure: {
@@ -195,7 +195,7 @@ export const useAppConfig = createPersistStore(
   }),
   {
     name: StoreKey.Config,
-    version: 4.1,
+    version: 4.3,
 
     merge(persistedState, currentState) {
       const merged = Object.assign(
@@ -249,6 +249,22 @@ export const useAppConfig = createPersistStore(
           DEFAULT_CONFIG.modelConfig.compressModel;
         state.modelConfig.compressProviderName =
           DEFAULT_CONFIG.modelConfig.compressProviderName;
+      }
+
+      if (version < 4.2) {
+        // 强制更新默认模型配置为阿里巴巴的qwen-turbo-latest
+        state.modelConfig.model = DEFAULT_CONFIG.modelConfig.model;
+        state.modelConfig.providerName =
+          DEFAULT_CONFIG.modelConfig.providerName;
+      }
+
+      if (version < 4.3) {
+        // 禁用OpenAI，强制使用阿里巴巴模型
+        state.modelConfig.model = "qwen-turbo-latest";
+        state.modelConfig.providerName = "Alibaba";
+        // 重置实时聊天配置
+        state.realtimeConfig.provider = "Azure";
+        state.realtimeConfig.model = "gpt-4o-realtime-preview-2024-10-01";
       }
 
       return state as any;

@@ -164,7 +164,7 @@ function fillTemplateWith(input: string, modelConfig: ModelConfig) {
   // Find the model in the DEFAULT_MODELS array that matches the modelConfig.model
   const modelInfo = DEFAULT_MODELS.find((m) => m.name === modelConfig.model);
 
-  var serviceProvider = "OpenAI";
+  var serviceProvider = "Alibaba";
   if (modelInfo) {
     // TODO: auto detect the providerName from the modelConfig.model
 
@@ -412,6 +412,11 @@ export const useChatStore = createPersistStore(
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
 
+        // Debug: 打印当前会话配置
+        console.log("[Debug] Current session mask:", session.mask);
+        console.log("[Debug] Current modelConfig:", modelConfig);
+        console.log("[Debug] Provider name:", modelConfig.providerName);
+
         // Check if this session has agent configuration
         const agentType = (session.mask as any).agentType;
         const maskId = session.mask.id;
@@ -467,6 +472,12 @@ export const useChatStore = createPersistStore(
         });
 
         const api: ClientApi = getClientApi(modelConfig.providerName);
+        console.log(
+          "[Debug] Using API client for provider:",
+          modelConfig.providerName,
+        );
+        console.log("[Debug] API client:", api);
+        console.log("[Debug] LLM instance:", api.llm);
         // make request
         api.llm.chat({
           messages: sendMessages,

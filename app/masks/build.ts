@@ -1,13 +1,12 @@
 import fs from "fs";
 import path from "path";
 import { CN_MASKS } from "./cn";
-import { EN_MASKS } from "./en";
 
 import { type BuiltinMask } from "./typing";
 
+// 移除英文面具支持
 const BUILTIN_MASKS: Record<string, BuiltinMask[]> = {
   cn: CN_MASKS,
-  en: EN_MASKS,
 };
 
 const dirname = path.dirname(__filename);

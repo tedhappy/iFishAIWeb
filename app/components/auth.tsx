@@ -34,7 +34,7 @@ export function AuthPage() {
 
   const resetAccessCode = () => {
     accessStore.update((access) => {
-      access.openaiApiKey = "";
+      access.openaiApiKey = ""; // Keep for compatibility but not used
       access.accessCode = "";
     });
   }; // Reset access code to empty string

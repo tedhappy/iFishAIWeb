@@ -1,6 +1,5 @@
 import { ApiPath } from "@/app/constant";
 import { NextRequest } from "next/server";
-import { handle as openaiHandler } from "../../openai";
 import { handle as azureHandler } from "../../azure";
 import { handle as googleHandler } from "../../google";
 import { handle as anthropicHandler } from "../../anthropic";
@@ -51,7 +50,17 @@ async function handle(
     case ApiPath.SiliconFlow:
       return siliconflowHandler(req, { params });
     case ApiPath.OpenAI:
-      return openaiHandler(req, { params });
+      // OpenAI is disabled, redirect to Alibaba
+      return new Response(
+        JSON.stringify({
+          error: "OpenAI API is disabled. Please use Alibaba provider instead.",
+          code: "OPENAI_DISABLED",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     default:
       return proxyHandler(req, { params });
   }
