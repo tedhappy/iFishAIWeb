@@ -998,9 +998,10 @@ function Chat() {
 
   // if user is typing, should auto scroll to bottom
   // if user is not typing, should auto scroll to bottom only if already at bottom
+  // 修复：当用户不在底部且不在输入时才禁用自动滚动，确保新消息能够自动滚动到底部
   const { setAutoScroll, scrollDomToBottom } = useScrollToBottom(
     scrollRef,
-    (isScrolledToBottom || isAttachWithTop) && !isTyping,
+    !isScrolledToBottom && !isAttachWithTop && !isTyping,
     session.messages,
   );
   const [hitBottom, setHitBottom] = useState(true);
