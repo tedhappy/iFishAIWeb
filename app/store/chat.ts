@@ -581,23 +581,24 @@ export const useChatStore = createPersistStore(
         });
 
         try {
+          // 获取后端 API 基础 URL
+          const apiBaseUrl =
+            process.env.API_BASE_URL || "http://localhost:5000";
+
           // Initialize agent session if not exists
           const sessionId = (session as any).agentSessionId;
           if (!sessionId) {
-            const initResponse = await fetch(
-              "http://47.109.81.57:5000/api/agent/init",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  user_id: userId,
-                  mask_id: maskId || "default",
-                  agent_type: agentType || "ticket",
-                }),
+            const initResponse = await fetch(`${apiBaseUrl}/api/agent/init`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify({
+                user_id: userId,
+                mask_id: maskId || "default",
+                agent_type: agentType || "ticket",
+              }),
+            });
 
             if (!initResponse.ok) {
               throw new Error("Failed to initialize agent session");
@@ -608,20 +609,17 @@ export const useChatStore = createPersistStore(
           }
 
           // Send message to agent
-          const chatResponse = await fetch(
-            "http://47.109.81.57:5000/api/agent/chat",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                session_id: (session as any).agentSessionId,
-                message: content,
-                file_paths: attachImages || [],
-              }),
+          const chatResponse = await fetch(`${apiBaseUrl}/api/agent/chat`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({
+              session_id: (session as any).agentSessionId,
+              message: content,
+              file_paths: attachImages || [],
+            }),
+          });
 
           if (!chatResponse.ok) {
             throw new Error("Failed to send message to agent");
