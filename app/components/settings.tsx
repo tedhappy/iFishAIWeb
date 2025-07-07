@@ -62,7 +62,7 @@ import {
   XAI,
   Google,
   GoogleSafetySettingsThreshold,
-  OPENAI_BASE_URL,
+  // OPENAI_BASE_URL, // 已禁用OpenAI
   Path,
   RELEASE_URL,
   STORAGE_KEY,
@@ -88,6 +88,9 @@ import { useMaskStore } from "../store/mask";
 import { ProviderType } from "../utils/cloud";
 import { TTSConfigList } from "./tts-config";
 import { RealtimeConfigList } from "./realtime-chat/realtime-config";
+
+// 临时 OPENAI_BASE_URL 常量，用于替代被禁用的 OpenAI 常量
+const OPENAI_BASE_URL = "https://api.openai.com";
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -737,8 +740,7 @@ export function Settings() {
       </ListItem>
     );
 
-  const openAIConfigComponent = accessStore.provider ===
-    ServiceProvider.OpenAI && (
+  const openAIConfigComponent = false && ( // accessStore.provider === ServiceProvider.OpenAI && // OpenAI removed
     <>
       <ListItem
         title={Locale.Settings.Access.OpenAI.Endpoint.Title}
@@ -1516,8 +1518,8 @@ export function Settings() {
               checkingUpdate
                 ? Locale.Settings.Update.IsChecking
                 : hasNewVersion
-                ? Locale.Settings.Update.FoundUpdate(remoteId ?? "ERROR")
-                : Locale.Settings.Update.IsLatest
+                  ? Locale.Settings.Update.FoundUpdate(remoteId ?? "ERROR")
+                  : Locale.Settings.Update.IsLatest
             }
           >
             {checkingUpdate ? (

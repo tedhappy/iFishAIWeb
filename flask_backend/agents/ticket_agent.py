@@ -116,7 +116,7 @@ class TicketAgent(BaseAgent):
     
     def _init_agent(self) -> Assistant:
         llm_cfg = {
-            'model': 'qwen-turbo-2025-04-28',
+            'model': 'qwen-turbo-latest',
             'timeout': 30,
             'retry_count': 3,
         }

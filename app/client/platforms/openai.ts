@@ -2,9 +2,9 @@
 // azure and openai, using same models. so using same LLMApi.
 import {
   ApiPath,
-  OPENAI_BASE_URL,
+  // OPENAI_BASE_URL, // 已禁用OpenAI
   DEFAULT_MODELS,
-  OpenaiPath,
+  // OpenaiPath, // 已禁用OpenAI
   Azure,
   REQUEST_TIMEOUT_MS,
   ServiceProvider,
@@ -44,6 +44,19 @@ import {
   getTimeoutMSByModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
+
+// 临时 OpenaiPath 对象，用于替代被禁用的 OpenAI 常量
+const OpenaiPath = {
+  ChatPath: "/v1/chat/completions",
+  ImagePath: "/v1/images/generations",
+  SpeechPath: "/v1/audio/speech",
+  UsagePath: "/v1/usage",
+  SubsPath: "/v1/subscription",
+  ListModelPath: "/v1/models",
+};
+
+// 临时 OPENAI_BASE_URL 常量
+const OPENAI_BASE_URL = "https://api.openai.com";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -100,7 +113,7 @@ export class ChatGPTApi implements LLMApi {
 
     if (baseUrl.length === 0) {
       const isApp = !!getClientConfig()?.isApp;
-      const apiPath = isAzure ? ApiPath.Azure : ApiPath.OpenAI;
+      const apiPath = isAzure ? ApiPath.Azure : "/api/openai"; // OpenAI removed, using fallback path
       baseUrl = isApp ? OPENAI_BASE_URL : apiPath;
     }
 
@@ -110,7 +123,7 @@ export class ChatGPTApi implements LLMApi {
     if (
       !baseUrl.startsWith("http") &&
       !isAzure &&
-      !baseUrl.startsWith(ApiPath.OpenAI)
+      !baseUrl.startsWith("/api/openai") // OpenAI removed, using fallback path
     ) {
       baseUrl = "https://" + baseUrl;
     }

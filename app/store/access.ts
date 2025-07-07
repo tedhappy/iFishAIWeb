@@ -3,7 +3,7 @@ import {
   ServiceProvider,
   StoreKey,
   ApiPath,
-  OPENAI_BASE_URL,
+  // OPENAI_BASE_URL, // 已禁用OpenAI
   ANTHROPIC_BASE_URL,
   GEMINI_BASE_URL,
   BAIDU_BASE_URL,
@@ -29,7 +29,7 @@ let fetchState = 0; // 0 not fetch, 1 fetching, 2 done
 
 const isApp = getClientConfig()?.buildMode === "export";
 
-const DEFAULT_OPENAI_URL = isApp ? OPENAI_BASE_URL : ApiPath.OpenAI;
+// const DEFAULT_OPENAI_URL = isApp ? OPENAI_BASE_URL : ApiPath.OpenAI; // 已禁用OpenAI
 
 const DEFAULT_GOOGLE_URL = isApp ? GEMINI_BASE_URL : ApiPath.Google;
 
@@ -65,8 +65,8 @@ const DEFAULT_ACCESS_STATE = {
 
   provider: ServiceProvider.Alibaba,
 
-  // openai
-  openaiUrl: DEFAULT_OPENAI_URL,
+  // openai - 已禁用但保留属性以兼容
+  openaiUrl: "", // DEFAULT_OPENAI_URL,
   openaiApiKey: "",
 
   // azure
@@ -165,9 +165,9 @@ export const useAccessStore = createPersistStore(
       return get().edgeTTSVoiceName;
     },
 
-    isValidOpenAI() {
-      return ensure(get(), ["openaiApiKey"]);
-    },
+    // isValidOpenAI() {
+    //   return ensure(get(), ["openaiApiKey"]);
+    // }, // 已禁用OpenAI
 
     isValidAzure() {
       return ensure(get(), ["azureUrl", "azureApiKey", "azureApiVersion"]);
@@ -224,7 +224,7 @@ export const useAccessStore = createPersistStore(
 
       // has token or has code or disabled access control
       return (
-        this.isValidOpenAI() ||
+        // this.isValidOpenAI() || // 已禁用OpenAI
         this.isValidAzure() ||
         this.isValidGoogle() ||
         this.isValidAnthropic() ||
@@ -282,11 +282,11 @@ export const useAccessStore = createPersistStore(
       if (version < 2) {
         const state = persistedState as {
           token: string;
-          openaiApiKey: string;
+          // openaiApiKey: string; // 已禁用OpenAI
           azureApiVersion: string;
           googleApiKey: string;
         };
-        state.openaiApiKey = state.token;
+        // state.openaiApiKey = state.token; // 已禁用OpenAI
         state.azureApiVersion = "2023-08-01-preview";
       }
 

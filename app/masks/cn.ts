@@ -28,7 +28,7 @@ export const CN_MASKS: BuiltinMask[] = [
       },
     ],
     modelConfig: {
-      model: "qwen-turbo",
+      model: "qwen-turbo-latest",
       temperature: 0.3,
       max_tokens: 2000,
       presence_penalty: 0,

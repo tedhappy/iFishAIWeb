@@ -27,6 +27,7 @@ import { useAppConfig } from "../store/config";
 import { AuthPage } from "./auth";
 import { getClientConfig } from "../config/client";
 import { type ClientApi, getClientApi } from "../client/api";
+import { ConfigInitializer } from "../utils/config-initializer";
 import clsx from "clsx";
 
 export function Loading(props: { noLogo?: boolean }) {
@@ -236,6 +237,11 @@ export function Home() {
   useSwitchTheme();
   // useLoadData();
   useHtmlLang();
+
+  // 初始化默认配置
+  useEffect(() => {
+    ConfigInitializer.initialize();
+  }, []);
 
   // useEffect(() => {
   //   console.log("[Config] got config from build time", getClientConfig());

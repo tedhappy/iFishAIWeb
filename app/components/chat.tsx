@@ -1448,9 +1448,9 @@ function Chat() {
           ).then((res) => {
             if (!res) return;
             if (payload.key) {
-              accessStore.update(
-                (access) => (access.openaiApiKey = payload.key!),
-              );
+              // accessStore.update(
+              //   (access) => (access.openaiApiKey = payload.key!), // OpenAI removed
+              // );
             }
             if (payload.url) {
               accessStore.update((access) => (access.openaiUrl = payload.url!));

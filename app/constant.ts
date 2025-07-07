@@ -11,7 +11,7 @@ export const RUNTIME_CONFIG_DOM = "danger-runtime-config";
 
 export const STABILITY_BASE_URL = "https://api.stability.ai";
 
-export const OPENAI_BASE_URL = "https://api.openai.com";
+// export const OPENAI_BASE_URL = "https://api.openai.com"; // 已禁用OpenAI
 export const ANTHROPIC_BASE_URL = "https://api.anthropic.com";
 
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/";
@@ -57,7 +57,7 @@ export enum Path {
 export enum ApiPath {
   Cors = "",
   Azure = "/api/azure",
-  OpenAI = "/api/openai",
+  // OpenAI = "/api/openai", // 已禁用OpenAI
   Anthropic = "/api/anthropic",
   Google = "/api/google",
   Baidu = "/api/baidu",
@@ -115,7 +115,7 @@ export const REQUEST_TIMEOUT_MS_FOR_THINKING = REQUEST_TIMEOUT_MS * 5;
 export const EXPORT_MESSAGE_CLASS_NAME = "export-markdown";
 
 export enum ServiceProvider {
-  OpenAI = "OpenAI",
+  // OpenAI = "OpenAI", // 已禁用OpenAI
   Azure = "Azure",
   Google = "Google",
   Anthropic = "Anthropic",
@@ -170,14 +170,14 @@ export const Anthropic = {
   Vision: "2023-06-01",
 };
 
-export const OpenaiPath = {
-  ChatPath: "v1/chat/completions",
-  SpeechPath: "v1/audio/speech",
-  ImagePath: "v1/images/generations",
-  UsagePath: "dashboard/billing/usage",
-  SubsPath: "dashboard/billing/subscription",
-  ListModelPath: "v1/models",
-};
+// export const OpenaiPath = {
+//   ChatPath: "v1/chat/completions",
+//   SpeechPath: "v1/audio/speech",
+//   ImagePath: "v1/images/generations",
+//   UsagePath: "dashboard/billing/usage",
+//   SubsPath: "dashboard/billing/subscription",
+//   ListModelPath: "v1/models",
+// }; // 已禁用OpenAI
 
 export const Azure = {
   ChatPath: (deployName: string, apiVersion: string) =>

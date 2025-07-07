@@ -34,7 +34,7 @@ export function AuthPage() {
 
   const resetAccessCode = () => {
     accessStore.update((access) => {
-      access.openaiApiKey = ""; // Keep for compatibility but not used
+      // access.openaiApiKey = ""; // OpenAI removed
       access.accessCode = "";
     });
   }; // Reset access code to empty string
@@ -80,6 +80,7 @@ export function AuthPage() {
       {!accessStore.hideUserApiKey ? (
         <>
           <div className={styles["auth-tips"]}>{Locale.Auth.SubTips}</div>
+          {/* OpenAI API Key input removed
           <PasswordInput
             style={{ marginTop: "3vh", marginBottom: "3vh" }}
             aria={Locale.Settings.ShowPassword}
@@ -93,6 +94,7 @@ export function AuthPage() {
               );
             }}
           />
+          */}
           <PasswordInput
             style={{ marginTop: "3vh", marginBottom: "3vh" }}
             aria={Locale.Settings.ShowPassword}

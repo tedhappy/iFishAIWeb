@@ -1,6 +1,14 @@
 import { type OpenAIListModelResponse } from "@/app/client/platforms/openai";
 import { getServerSideConfig } from "@/app/config/server";
-import { ModelProvider, OpenaiPath } from "@/app/constant";
+import { ModelProvider } from "@/app/constant";
+
+// 临时定义 OpenaiPath 以保持兼容性
+const OpenaiPath = {
+  ListModelPath: "models",
+  ChatPath: "chat/completions",
+  SpeechPath: "audio/speech",
+  ImagePath: "images/generations",
+};
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";

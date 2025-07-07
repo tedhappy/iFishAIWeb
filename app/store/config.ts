@@ -15,6 +15,10 @@ import {
   ServiceProvider,
 } from "../constant";
 import { createPersistStore } from "../utils/store";
+import {
+  getDefaultConfigSync,
+  getDefaultConfig,
+} from "../utils/default-config";
 import type { Voice } from "rt-client";
 
 export type ModelType = (typeof DEFAULT_MODELS)[number]["name"];
@@ -37,6 +41,7 @@ export enum Theme {
 }
 
 const config = getClientConfig();
+const defaultConfig = getDefaultConfigSync(); // 获取默认配置
 
 export const DEFAULT_CONFIG = {
   lastUpdate: Date.now(), // timestamp, to merge state
@@ -64,8 +69,8 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "qwen-turbo-latest" as ModelType,
-    providerName: "Alibaba" as ServiceProvider,
+    model: defaultConfig.defaultModel as ModelType, // 使用环境变量配置的默认模型
+    providerName: defaultConfig.defaultProvider, // 使用环境变量配置的默认提供商
     temperature: 0.5,
     top_p: 1,
     max_tokens: 4000,
@@ -189,6 +194,36 @@ export const useAppConfig = createPersistStore(
       set(() => ({
         models: Object.values(modelMap),
       }));
+    },
+
+    /**
+     * 异步更新默认配置
+     * 从环境变量中获取最新的默认模型和提供商配置
+     */
+    async updateDefaultConfig() {
+      try {
+        const newDefaultConfig = await getDefaultConfig();
+        const currentConfig = get();
+
+        // 只有当前配置还是默认值时才更新
+        const isUsingDefaults =
+          currentConfig.modelConfig.model === defaultConfig.defaultModel &&
+          currentConfig.modelConfig.providerName ===
+            defaultConfig.defaultProvider;
+
+        if (isUsingDefaults) {
+          set((state) => ({
+            ...state,
+            modelConfig: {
+              ...state.modelConfig,
+              model: newDefaultConfig.defaultModel as ModelType,
+              providerName: newDefaultConfig.defaultProvider,
+            },
+          }));
+        }
+      } catch (error) {
+        console.error("[Config Store] Failed to update default config:", error);
+      }
     },
 
     allModels() {},

@@ -293,7 +293,7 @@ export function getHeaders(ignoreHeaders: boolean = false) {
                               ":" +
                               accessStore.iflytekApiSecret
                             : ""
-                          : accessStore.openaiApiKey;
+                          : ""; // accessStore.openaiApiKey; // OpenAI removed
     return {
       isGoogle,
       isAzure,
@@ -385,7 +385,7 @@ export function getClientApi(provider: ServiceProvider): ClientApi {
       return new ClientApi(ModelProvider.ChatGLM);
     case ServiceProvider.SiliconFlow:
       return new ClientApi(ModelProvider.SiliconFlow);
-    case ServiceProvider.OpenAI:
+    // case ServiceProvider.OpenAI: // OpenAI removed
     case ServiceProvider.Azure:
       // OpenAI和Azure被禁用，重定向到阿里巴巴
       console.warn(

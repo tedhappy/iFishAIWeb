@@ -149,7 +149,7 @@ def generate_chart_png(df_sql, save_path):
 def init_agent_service():
     """初始化门票助手服务"""
     llm_cfg = {
-        'model': 'qwen-turbo-2025-04-28',
+        'model': 'qwen-turbo-latest',
         'timeout': 30,
         'retry_count': 3,
     }

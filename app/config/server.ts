@@ -7,23 +7,22 @@ declare global {
     interface ProcessEnv {
       PROXY_URL?: string; // docker only
 
-      OPENAI_API_KEY?: string;
       CODE?: string;
 
       BASE_URL?: string;
-      OPENAI_ORG_ID?: string; // openai only
 
       VERCEL?: string;
       BUILD_MODE?: "standalone" | "export";
       BUILD_APP?: string; // is building desktop app
 
       HIDE_USER_API_KEY?: string; // disable user's api key input
-      DISABLE_GPT4?: string; // allow user to use gpt-4 or not
-      ENABLE_BALANCE_QUERY?: string; // allow user to query balance or not
-      DISABLE_FAST_LINK?: string; // disallow parse settings from url or not
-      CUSTOM_MODELS?: string; // to control custom models
-      DEFAULT_MODEL?: string; // to control default model in every new chat window
-      VISION_MODELS?: string; // to control vision models
+      DISABLE_GPT4?: string; // 是否允许用户使用gpt-4
+      ENABLE_BALANCE_QUERY?: string; // 是否允许用户查询余额
+      DISABLE_FAST_LINK?: string; // 是否禁用从URL解析设置
+      CUSTOM_MODELS?: string; // 控制自定义模型
+      DEFAULT_MODEL?: string; // 控制每个新聊天窗口的默认模型
+      DEFAULT_PROVIDER?: string; // 控制每个新聊天窗口的默认提供商
+      VISION_MODELS?: string; // 控制视觉模型
 
       // stability only
       STABILITY_URL?: string;
@@ -91,7 +90,7 @@ declare global {
       // custom template for preprocessing user input
       DEFAULT_INPUT_TEMPLATE?: string;
 
-      ENABLE_MCP?: string; // enable mcp functionality
+      ENABLE_MCP?: string; // 启用MCP功能
     }
   }
 }
@@ -135,6 +134,7 @@ export const getServerSideConfig = () => {
   const disableGPT4 = !!process.env.DISABLE_GPT4;
   let customModels = process.env.CUSTOM_MODELS ?? "";
   let defaultModel = process.env.DEFAULT_MODEL ?? "";
+  let defaultProvider = process.env.DEFAULT_PROVIDER ?? "";
   let visionModels = process.env.VISION_MODELS ?? "";
 
   if (disableGPT4) {
@@ -163,13 +163,6 @@ export const getServerSideConfig = () => {
   const isXAI = !!process.env.XAI_API_KEY;
   const isChatGLM = !!process.env.CHATGLM_API_KEY;
   const isSiliconFlow = !!process.env.SILICONFLOW_API_KEY;
-  // const apiKeyEnvVar = process.env.OPENAI_API_KEY ?? "";
-  // const apiKeys = apiKeyEnvVar.split(",").map((v) => v.trim());
-  // const randomIndex = Math.floor(Math.random() * apiKeys.length);
-  // const apiKey = apiKeys[randomIndex];
-  // console.log(
-  //   `[Server Config] using ${randomIndex + 1} of ${apiKeys.length} api key`,
-  // );
 
   const allowedWebDavEndpoints = (
     process.env.WHITE_WEBDAV_ENDPOINTS ?? ""
@@ -177,8 +170,6 @@ export const getServerSideConfig = () => {
 
   return {
     baseUrl: process.env.BASE_URL,
-    apiKey: getApiKey(process.env.OPENAI_API_KEY),
-    openaiOrgId: process.env.OPENAI_ORG_ID,
 
     isStability,
     stabilityUrl: process.env.STABILITY_URL,
@@ -262,8 +253,13 @@ export const getServerSideConfig = () => {
     disableFastLink: !!process.env.DISABLE_FAST_LINK,
     customModels,
     defaultModel,
+    defaultProvider,
     visionModels,
     allowedWebDavEndpoints,
     enableMcp: process.env.ENABLE_MCP === "true",
+
+    // 临时添加 apiKey 和 openaiOrgId 以保持向后兼容性 (OpenAI removed)
+    apiKey: undefined as string | undefined,
+    openaiOrgId: undefined as string | undefined,
   };
 };

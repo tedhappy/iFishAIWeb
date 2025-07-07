@@ -49,7 +49,7 @@ async function handle(
       return chatglmHandler(req, { params });
     case ApiPath.SiliconFlow:
       return siliconflowHandler(req, { params });
-    case ApiPath.OpenAI:
+    case "/api/openai": // OpenAI removed, using hardcoded path
       // OpenAI is disabled, redirect to Alibaba
       return new Response(
         JSON.stringify({

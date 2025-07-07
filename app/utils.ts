@@ -334,7 +334,7 @@ export function supportsCustomSize(model: string): boolean {
 
 export function showPlugins(provider: ServiceProvider, model: string) {
   if (
-    provider == ServiceProvider.OpenAI ||
+    // provider == ServiceProvider.OpenAI || // OpenAI removed
     provider == ServiceProvider.Azure ||
     provider == ServiceProvider.Moonshot ||
     provider == ServiceProvider.ChatGLM
