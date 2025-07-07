@@ -585,7 +585,7 @@ export const useChatStore = createPersistStore(
           const sessionId = (session as any).agentSessionId;
           if (!sessionId) {
             const initResponse = await fetch(
-              "http://localhost:5000/api/agent/init",
+              "http://47.109.81.57:5000/api/agent/init",
               {
                 method: "POST",
                 headers: {
@@ -609,7 +609,7 @@ export const useChatStore = createPersistStore(
 
           // Send message to agent
           const chatResponse = await fetch(
-            "http://localhost:5000/api/agent/chat",
+            "http://47.109.81.57:5000/api/agent/chat",
             {
               method: "POST",
               headers: {
