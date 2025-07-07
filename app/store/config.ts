@@ -261,9 +261,9 @@ export const useAppConfig = createPersistStore(
       if (version < 4.3) {
         // 禁用OpenAI，强制使用阿里巴巴模型
         state.modelConfig.model = "qwen-turbo-latest";
-        state.modelConfig.providerName = "Alibaba";
+        state.modelConfig.providerName = ServiceProvider.Alibaba;
         // 重置实时聊天配置
-        state.realtimeConfig.provider = "Azure";
+        state.realtimeConfig.provider = ServiceProvider.Azure;
         state.realtimeConfig.model = "gpt-4o-realtime-preview-2024-10-01";
       }
 
