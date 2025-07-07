@@ -1,23 +1,33 @@
-# Flask核心依赖
-Flask==2.3.3
-Flask-CORS==4.0.0
+# Flask核心依赖 - 使用更稳定的版本组合
+Flask>=2.0.0,<3.0.0
+Flask-CORS>=3.0.0,<5.0.0
+Werkzeug>=2.0.0,<3.0.0
 
 # QWen Agent相关
-qwen-agent==0.0.9
-dashscope==1.20.0
+qwen-agent>=0.0.9
+dashscope>=1.20.0
 
-# 数据处理
-pandas==2.1.4
-numpy==1.24.3
-matplotlib==3.7.2
+# 数据处理 - 使用兼容版本
+pandas>=1.5.0,<3.0.0
+numpy>=1.21.0,<2.0.0
+matplotlib>=3.5.0,<4.0.0
 
 # 数据库连接
-SQLAlchemy==2.0.23
-mysql-connector-python==8.2.0
+SQLAlchemy>=1.4.0,<3.0.0
+mysql-connector-python>=8.0.0,<9.0.0
 
 # 工具库
-requests==2.31.0
-Pillow==10.1.0
+requests>=2.25.0,<3.0.0
+Pillow>=8.0.0,<11.0.0
 
 # 开发工具
-python-dotenv==1.0.0
+python-dotenv>=0.19.0,<2.0.0
+
+# Web服务器
+gunicorn>=20.0.0,<22.0.0
+
+# 其他可能需要的依赖
+click>=7.0.0,<9.0.0
+Jinja2>=3.0.0,<4.0.0
+itsdangerous>=2.0.0,<3.0.0
+MarkupSafe>=2.0.0,<3.0.0
