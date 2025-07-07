@@ -422,8 +422,13 @@ export const useChatStore = createPersistStore(
         const maskId = session.mask.id;
 
         if (agentType) {
-          // Use Agent API
-          return get().callAgentAPI(content, attachImages, agentType, maskId);
+          // Use Agent API only, avoid dual loading
+          return await get().callAgentAPI(
+            content,
+            attachImages,
+            agentType,
+            maskId,
+          );
         }
 
         // Original LLM API logic

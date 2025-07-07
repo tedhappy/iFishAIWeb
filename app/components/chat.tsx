@@ -1086,10 +1086,19 @@ function Chat() {
       matchCommand.invoke();
       return;
     }
-    setIsLoading(true);
-    chatStore
-      .onUserInput(userInput, attachImages)
-      .then(() => setIsLoading(false));
+
+    // Check if current session has agent type to avoid dual loading
+    const hasAgentType = (session.mask as any).agentType;
+
+    if (!hasAgentType) {
+      setIsLoading(true);
+    }
+
+    chatStore.onUserInput(userInput, attachImages).then(() => {
+      if (!hasAgentType) {
+        setIsLoading(false);
+      }
+    });
     setAttachImages([]);
     chatStore.setLastInput(userInput);
     setUserInput("");
@@ -1238,10 +1247,19 @@ function Chat() {
     deleteMessage(botMessage?.id);
 
     // resend the message
-    setIsLoading(true);
+    const hasAgentType = (session.mask as any).agentType;
+
+    if (!hasAgentType) {
+      setIsLoading(true);
+    }
+
     const textContent = getMessageTextContent(userMessage);
     const images = getMessageImages(userMessage);
-    chatStore.onUserInput(textContent, images).then(() => setIsLoading(false));
+    chatStore.onUserInput(textContent, images).then(() => {
+      if (!hasAgentType) {
+        setIsLoading(false);
+      }
+    });
     inputRef.current?.focus();
   };
 
@@ -1324,19 +1342,20 @@ function Chat() {
   const renderMessages = useMemo(() => {
     return context
       .concat(session.messages as RenderMessage[])
-      .concat(
-        isLoading
-          ? [
-              {
-                ...createMessage({
-                  role: "assistant",
-                  content: "……",
-                }),
-                preview: true,
-              },
-            ]
-          : [],
-      )
+      .concat
+      // Don't show isLoading preview message since botMessage.streaming already handles loading state
+      // isLoading
+      //   ? [
+      //       {
+      //         ...createMessage({
+      //           role: "assistant",
+      //           content: "……",
+      //         }),
+      //         preview: true,
+      //       },
+      //     ]
+      //   : [],
+      ()
       .concat(
         userInput.length > 0 && config.sendPreviewBubble
           ? [

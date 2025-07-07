@@ -252,25 +252,7 @@ function AuthorModal(props: { onClose: () => void }) {
             </span>{" "}
             微信：ted_happy（请备注来意）
           </div>
-          <div>
-            <span role="img" aria-label="github">
-              🌐
-            </span>{" "}
-            Github：
-            <a
-              href="https://github.com/tedhappy"
-              target="_blank"
-              style={{ color: "inherit", textDecoration: "none" }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.textDecoration = "underline")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.textDecoration = "none")
-              }
-            >
-              https://github.com/tedhappy
-            </a>
-          </div>
+
           <div style={{ marginTop: 16 }}>
             <span role="img" aria-label="idea" style={{ marginRight: 6 }}>
               ✨
