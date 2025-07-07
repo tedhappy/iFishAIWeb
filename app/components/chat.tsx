@@ -553,8 +553,10 @@ export function ChatActions(props: {
 
   useEffect(() => {
     const show = isVisionModel(currentModel);
-    setShowUploadImage(show);
+    // 修改：让上传图片按钮在任何聊天界面都默认显示
+    setShowUploadImage(true);
     if (!show) {
+      // 对于非视觉模型，清空已上传的图片但保持按钮显示
       props.setAttachImages([]);
       props.setUploading(false);
     }
