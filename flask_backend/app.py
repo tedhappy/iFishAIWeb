@@ -19,8 +19,8 @@ app.config['ALIBABA_API_KEY'] = os.getenv('ALIBABA_API_KEY')
 app.config['ENABLE_MCP'] = True  # 默认开启MCP功能
 
 # 注册蓝图
-app.register_blueprint(agent_bp, url_prefix='/api/agent')
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(agent_bp, url_prefix='/flask/agent')
+app.register_blueprint(auth_bp, url_prefix='/flask/auth')
 
 # 配置日志
 logging.basicConfig(level=logging.DEBUG)
@@ -52,7 +52,7 @@ def handle_exception(e):
 # 全局会话管理器
 session_manager = SessionManager()
 
-@app.route('/health', methods=['GET'])
+@app.route('/flask/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
     return jsonify({

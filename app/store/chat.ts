@@ -588,7 +588,7 @@ export const useChatStore = createPersistStore(
           // Initialize agent session if not exists
           const sessionId = (session as any).agentSessionId;
           if (!sessionId) {
-            const initResponse = await fetch(`${apiBaseUrl}/api/agent/init`, {
+            const initResponse = await fetch(`${apiBaseUrl}/flask/agent/init`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -609,7 +609,7 @@ export const useChatStore = createPersistStore(
           }
 
           // Send message to agent
-          const chatResponse = await fetch(`${apiBaseUrl}/api/agent/chat`, {
+          const chatResponse = await fetch(`${apiBaseUrl}/flask/agent/chat`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
