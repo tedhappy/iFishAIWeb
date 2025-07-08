@@ -13,11 +13,15 @@ def init_agent():
     mask_id = data.get('mask_id')
     agent_type = data.get('agent_type', 'default')
     
+    current_app.logger.info(f"初始化Agent会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}")
+    
     if not mask_id:
+        current_app.logger.error("缺少mask_id参数")
         return jsonify({'error': '缺少mask_id参数'}), 400
     
     try:
         session_id = session_manager.create_session(user_id, mask_id, agent_type)
+        current_app.logger.info(f"会话创建成功 - session_id: {session_id}")
         return jsonify({
             'success': True,
             'session_id': session_id,
@@ -25,6 +29,7 @@ def init_agent():
             'user_id': user_id
         })
     except Exception as e:
+        current_app.logger.error(f"创建会话失败: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @agent_bp.route('/chat', methods=['POST'])
@@ -33,19 +38,34 @@ def chat_with_agent():
     data = request.get_json()
     session_id = data.get('session_id')
     message = data.get('message')
-    file_path = data.get('file_path')
+    file_paths = data.get('file_paths', [])  # 修改为file_paths以匹配前端
+    file_path = data.get('file_path')  # 保持向后兼容
+    
+    # 如果有file_paths就使用file_paths，否则使用file_path
+    files = file_paths if file_paths else ([file_path] if file_path else [])
+    
+    current_app.logger.info(f"收到聊天请求 - session_id: {session_id}, message: {message[:50] if message else None}..., files: {files}")
     
     if not session_id or not message:
+        current_app.logger.error(f"缺少必要参数 - session_id: {session_id}, message: {bool(message)}")
         return jsonify({'error': '缺少必要参数'}), 400
     
     agent = session_manager.get_session(session_id)
+    current_app.logger.info(f"查找会话结果 - session_id: {session_id}, agent存在: {agent is not None}")
+    current_app.logger.info(f"当前活跃会话数: {session_manager.get_session_count()}")
+    current_app.logger.info(f"所有会话ID: {list(session_manager.sessions.keys())}")
+    
     if not agent:
+        current_app.logger.error(f"会话不存在 - session_id: {session_id}")
         return jsonify({'error': '会话不存在'}), 404
     
     try:
-        response = agent.chat(message, file_path)
+        # 传递第一个文件路径给agent.chat方法（保持向后兼容）
+        response = agent.chat(message, files[0] if files else None)
+        current_app.logger.info(f"聊天响应成功 - session_id: {session_id}")
         return jsonify(response)
     except Exception as e:
+        current_app.logger.error(f"聊天处理失败 - session_id: {session_id}, error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @agent_bp.route('/history/<session_id>', methods=['GET'])
