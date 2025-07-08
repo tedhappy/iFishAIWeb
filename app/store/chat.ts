@@ -581,9 +581,9 @@ export const useChatStore = createPersistStore(
         });
 
         try {
-          // 获取后端 API 基础 URL
+          // 获取后端 API 基础 URL（使用客户端环境变量）
           const apiBaseUrl =
-            process.env.API_BASE_URL || "http://localhost:5000";
+            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
 
           // Initialize agent session if not exists
           const sessionId = (session as any).agentSessionId;
