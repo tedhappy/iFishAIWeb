@@ -558,54 +558,186 @@ export const useChatStore = createPersistStore(
         attachImages?: string[],
         agentType?: string,
         maskId?: string,
-      ) {
+        isRetry: boolean = false,
+      ): Promise<void> {
         const session = get().currentSession();
-        const userId = "user_" + Date.now(); // Simple user ID generation
+        // 使用会话ID作为用户ID的一部分，确保一致性
+        const userId = "user_" + session.id;
 
-        // Create user message
-        let userMessage: ChatMessage = createMessage({
-          role: "user",
-          content: content,
-        });
+        // Create user message (only if not a retry)
+        let userMessage: ChatMessage;
+        let botMessage: ChatMessage;
 
-        // Create bot message
-        const botMessage: ChatMessage = createMessage({
-          role: "assistant",
-          streaming: true,
-          model: agentType || "agent",
-        });
+        if (!isRetry) {
+          userMessage = createMessage({
+            role: "user",
+            content: content,
+          });
 
-        // Save messages to session
-        get().updateTargetSession(session, (session) => {
-          session.messages = session.messages.concat([userMessage, botMessage]);
-        });
+          // Create bot message
+          botMessage = createMessage({
+            role: "assistant",
+            streaming: true,
+            model: agentType || "agent",
+          });
+
+          // Save messages to session
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat([
+              userMessage,
+              botMessage,
+            ]);
+          });
+        } else {
+          // 重试时，获取最后的用户消息和机器人消息
+          const messages = session.messages;
+
+          // 安全检查：确保有足够的消息
+          if (messages.length < 2) {
+            throw new Error("消息历史不足，无法重试");
+          }
+
+          userMessage = messages[messages.length - 2]; // 倒数第二条是用户消息
+          botMessage = messages[messages.length - 1]; // 最后一条是机器人消息
+
+          // 安全检查：确保获取到的是正确的消息类型
+          if (!userMessage || userMessage.role !== "user") {
+            throw new Error("无法找到用户消息，请重新发送");
+          }
+
+          if (!botMessage || botMessage.role !== "assistant") {
+            throw new Error("无法找到机器人消息，请重新发送");
+          }
+
+          // 重置机器人消息状态
+          botMessage.streaming = true;
+          botMessage.isError = false;
+          botMessage.content = "正在重新连接...";
+
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
+        }
 
         try {
           // 获取后端 API 基础 URL（使用客户端环境变量）
           const apiBaseUrl =
             process.env.NEXT_PUBLIC_API_BASE_URL || "https://www.ifish.me";
 
-          // Initialize agent session if not exists
-          const sessionId = (session as any).agentSessionId;
-          if (!sessionId) {
-            const initResponse = await fetch(`${apiBaseUrl}/flask/agent/init`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                user_id: userId,
-                mask_id: maskId || "default",
-                agent_type: agentType || "ticket",
-              }),
-            });
+          // 检查现有的agent session是否有效
+          let sessionId = (session as any).agentSessionId;
+          let needsInit = !sessionId;
 
-            if (!initResponse.ok) {
-              throw new Error("Failed to initialize agent session");
+          // 如果有sessionId，先验证它是否仍然有效（仅在非重试时进行验证）
+          if (sessionId && !isRetry) {
+            try {
+              // 使用AbortController来实现超时控制
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+              const testResponse = await fetch(
+                `${apiBaseUrl}/flask/agent/session/${sessionId}/status`,
+                {
+                  method: "GET",
+                  signal: controller.signal,
+                },
+              );
+
+              clearTimeout(timeoutId);
+
+              if (!testResponse.ok || testResponse.status === 404) {
+                console.log(
+                  "[Agent API] Session validation failed, session not found or expired",
+                );
+                needsInit = true;
+                sessionId = null;
+                (session as any).agentSessionId = null;
+              } else {
+                const statusData = await testResponse.json();
+                if (!statusData.success || !statusData.exists) {
+                  console.log(
+                    "[Agent API] Session validation failed, session invalid",
+                  );
+                  needsInit = true;
+                  sessionId = null;
+                  (session as any).agentSessionId = null;
+                }
+              }
+            } catch (error) {
+              console.warn(
+                "[Agent API] Session validation failed, will reinitialize",
+                error,
+              );
+              needsInit = true;
+              sessionId = null;
+              (session as any).agentSessionId = null;
+            }
+          }
+
+          // Initialize agent session if needed
+          if (needsInit) {
+            let initResponse;
+
+            // 如果有旧的sessionId，先尝试恢复会话
+            if ((session as any).agentSessionId && !isRetry) {
+              try {
+                const recoverResponse = await fetch(
+                  `${apiBaseUrl}/flask/agent/recover`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      user_id: userId,
+                      mask_id: maskId || "default",
+                      agent_type: agentType || "ticket",
+                      session_id: (session as any).agentSessionId,
+                    }),
+                  },
+                );
+
+                if (recoverResponse.ok) {
+                  const recoverData = await recoverResponse.json();
+                  if (recoverData.success) {
+                    sessionId = recoverData.session_id;
+                    (session as any).agentSessionId = sessionId;
+                    console.log(
+                      `[Agent API] Session recovery ${recoverData.recovered ? "successful" : "created new"}: ${sessionId}`,
+                    );
+                    needsInit = false;
+                  }
+                }
+              } catch (error) {
+                console.warn(
+                  "[Agent API] Session recovery failed, will create new session",
+                  error,
+                );
+              }
             }
 
-            const initData = await initResponse.json();
-            (session as any).agentSessionId = initData.session_id;
+            // 如果恢复失败，创建新会话
+            if (needsInit) {
+              initResponse = await fetch(`${apiBaseUrl}/flask/agent/init`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  user_id: userId,
+                  mask_id: maskId || "default",
+                  agent_type: agentType || "ticket",
+                }),
+              });
+
+              if (!initResponse.ok) {
+                throw new Error("初始化Agent会话失败，请稍后重试");
+              }
+
+              const initData = await initResponse.json();
+              sessionId = initData.session_id;
+              (session as any).agentSessionId = sessionId;
+            }
           }
 
           // Send message to agent
@@ -615,23 +747,52 @@ export const useChatStore = createPersistStore(
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              session_id: (session as any).agentSessionId,
+              session_id: sessionId,
               message: content,
               file_paths: attachImages || [],
             }),
           });
 
+          console.log(
+            `[Agent API] Sending chat request with session_id: ${sessionId}`,
+          );
+
           if (!chatResponse.ok) {
-            throw new Error("Failed to send message to agent");
+            // 如果chat请求失败，可能是session过期
+            if (chatResponse.status === 404) {
+              console.warn("[Agent API] Session not found, clearing sessionId");
+              (session as any).agentSessionId = null;
+
+              // 如果不是重试，则自动重试一次
+              if (!isRetry) {
+                console.log("[Agent API] Attempting auto-retry...");
+                return await get().callAgentAPI(
+                  content,
+                  attachImages,
+                  agentType,
+                  maskId,
+                  true,
+                );
+              } else {
+                throw new Error("会话已过期，请重新发送消息");
+              }
+            }
+
+            // 其他错误
+            const errorMsg =
+              chatResponse.status === 500
+                ? "服务器内部错误，请稍后重试"
+                : `连接失败 (${chatResponse.status})，请检查网络连接`;
+            throw new Error(errorMsg);
           }
 
           const responseData = await chatResponse.json();
 
           // Update bot message with response
           botMessage.streaming = false;
-          botMessage.content =
-            responseData.response || "No response from agent";
+          botMessage.content = responseData.response || "Agent暂无回复";
           botMessage.date = new Date().toLocaleString();
+          botMessage.isError = false;
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();
@@ -643,9 +804,47 @@ export const useChatStore = createPersistStore(
 
           // Update bot message with error
           botMessage.streaming = false;
-          botMessage.content = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+
+          // 提供更友好的错误信息和操作建议
+          let errorMessage = "";
+          let showRetryToast = false;
+
+          if (error instanceof Error) {
+            if (error.message.includes("会话已过期")) {
+              errorMessage = "会话已过期，请点击重试按钮重新发送消息";
+              showRetryToast = true;
+            } else if (error.message.includes("服务器内部错误")) {
+              errorMessage = "服务器暂时繁忙，请稍后重试";
+              showRetryToast = true;
+            } else if (error.message.includes("连接失败")) {
+              errorMessage = "网络连接异常，请检查网络后重试";
+              showRetryToast = true;
+            } else if (error.message.includes("初始化Agent会话失败")) {
+              errorMessage = "Agent服务初始化失败，请稍后重试";
+              showRetryToast = true;
+            } else {
+              errorMessage = error.message;
+            }
+          } else {
+            errorMessage = "发生未知错误，请稍后重试";
+            showRetryToast = true;
+          }
+
+          botMessage.content = errorMessage;
           botMessage.isError = true;
-          userMessage.isError = true;
+
+          // 确保userMessage存在时才设置错误状态
+          if (userMessage) {
+            userMessage.isError = true;
+          }
+
+          // 显示友好的错误提示
+          if (showRetryToast && !isRetry) {
+            showToast("Agent连接异常，请使用重试按钮重新发送消息", {
+              text: "了解",
+              onClick: () => {},
+            });
+          }
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();

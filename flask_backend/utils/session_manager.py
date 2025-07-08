@@ -29,24 +29,31 @@ class SessionManager:
         self._load_sessions()
         self._start_cleanup_thread()
     
-    def create_session(self, user_id: str, mask_id: str, agent_type: str) -> str:
+    def create_session(self, user_id: str, mask_id: str, agent_type: str = 'default') -> str:
         """创建新的Agent会话（线程安全）"""
         with self._lock:
             session_id = f"{user_id}_{mask_id}_{agent_type}"
-            current_time = time.time()
             
+            # 如果会话已存在，直接返回
             if session_id in self.sessions:
-                # 更新会话活跃时间
-                self.session_timestamps[session_id] = current_time
-                self.logger.info(f"会话已存在，更新活跃时间: {session_id}")
+                # 更新活跃时间
+                self.session_timestamps[session_id] = time.time()
+                # 立即保存更新的时间戳
+                self._save_sessions()
+                self.logger.info(f"会话已存在，返回现有会话: {session_id}")
                 return session_id
             
-            agent_class = self.agent_types.get(agent_type, self.agent_types['default'])
-            if agent_class is None:
+            # 检查Agent类型是否支持
+            if agent_type not in self.agent_types:
                 raise ValueError(f"不支持的Agent类型: {agent_type}")
             
+            # 创建新的Agent实例
+            agent_class = self.agent_types[agent_type]
             agent = agent_class(agent_id=mask_id, user_id=user_id)
+            
+            # 存储会话
             self.sessions[session_id] = agent
+            current_time = time.time()
             self.session_timestamps[session_id] = current_time
             
             # 保存会话到文件
@@ -236,6 +243,8 @@ class SessionManager:
         with self._lock:
             if session_id in self.sessions:
                 self.session_timestamps[session_id] = time.time()
+                # 立即保存更新的时间戳
+                self._save_sessions()
                 return True
             return False
     
@@ -300,6 +309,29 @@ class SessionManager:
         if self._cleanup_thread and self._cleanup_thread.is_alive():
             self._cleanup_thread.join(timeout=5)
             self.logger.info("会话清理线程已停止")
+    
+    def chat_with_agent(self, session_id: str, message: str) -> str:
+        """与Agent对话（线程安全）"""
+        with self._lock:
+            if session_id not in self.sessions:
+                raise ValueError(f"会话不存在: {session_id}")
+            
+            agent = self.sessions[session_id]
+            
+            # 更新会话活跃时间
+            self.session_timestamps[session_id] = time.time()
+            
+            try:
+                response = agent.chat(message)
+                # 对话成功后立即保存会话状态
+                self._save_sessions()
+                self.logger.info(f"会话 {session_id} 对话成功")
+                return response
+            except Exception as e:
+                self.logger.error(f"会话 {session_id} 对话失败: {str(e)}")
+                # 即使对话失败也保存时间戳更新
+                self._save_sessions()
+                raise
     
     def __del__(self):
         """析构函数，确保清理线程正确停止"""

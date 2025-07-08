@@ -1258,11 +1258,22 @@ function Chat() {
 
     const textContent = getMessageTextContent(userMessage);
     const images = getMessageImages(userMessage);
-    chatStore.onUserInput(textContent, images).then(() => {
-      if (!hasAgentType) {
+
+    if (hasAgentType) {
+      // 对于Agent类型，使用专门的Agent API重试逻辑
+      chatStore.callAgentAPI(
+        textContent,
+        images,
+        hasAgentType,
+        (session.mask as any).maskId,
+        true, // 标记为重试
+      );
+    } else {
+      // 对于普通聊天，使用原有逻辑
+      chatStore.onUserInput(textContent, images).then(() => {
         setIsLoading(false);
-      }
-    });
+      });
+    }
     inputRef.current?.focus();
   };
 

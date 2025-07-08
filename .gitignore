@@ -73,3 +73,4 @@ wheels/
 .installed.cfg
 *.egg
 PYTHON_ARGCOMPLETE_OK
+sessions.json

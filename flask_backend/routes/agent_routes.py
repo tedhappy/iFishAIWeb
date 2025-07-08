@@ -60,8 +60,16 @@ def chat_with_agent():
         return jsonify({'error': '会话不存在'}), 404
     
     try:
-        # 传递第一个文件路径给agent.chat方法（保持向后兼容）
-        response = agent.chat(message, files[0] if files else None)
+        # 使用SessionManager的chat_with_agent方法，确保会话状态自动保存
+        if files:
+            # 如果有文件，需要特殊处理（暂时保持原有逻辑）
+            response = agent.chat(message, files[0])
+            # 手动更新会话时间戳并保存
+            session_manager.touch_session(session_id)
+        else:
+            # 使用SessionManager的统一方法
+            response = session_manager.chat_with_agent(session_id, message)
+        
         current_app.logger.info(f"聊天响应成功 - session_id: {session_id}")
         return jsonify(response)
     except Exception as e:
@@ -148,6 +156,39 @@ def get_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@agent_bp.route('/session/<session_id>/status', methods=['GET'])
+def check_session_status(session_id):
+    """检查特定会话的状态"""
+    current_app.logger.info(f"检查会话状态 - session_id: {session_id}")
+    
+    if not session_id:
+        return jsonify({'error': '缺少session_id参数'}), 400
+    
+    try:
+        agent = session_manager.get_session(session_id)
+        if not agent:
+            current_app.logger.info(f"会话不存在 - session_id: {session_id}")
+            return jsonify({
+                'success': False,
+                'exists': False,
+                'message': '会话不存在或已过期'
+            }), 404
+        
+        # 更新会话的最后活跃时间
+        session_manager.touch_session(session_id)
+        
+        current_app.logger.info(f"会话状态正常 - session_id: {session_id}")
+        return jsonify({
+            'success': True,
+            'exists': True,
+            'session_id': session_id,
+            'agent_type': agent.agent_type if hasattr(agent, 'agent_type') else 'unknown',
+            'message_count': len(agent.get_history()) if hasattr(agent, 'get_history') else 0
+        })
+    except Exception as e:
+        current_app.logger.error(f"检查会话状态失败 - session_id: {session_id}, error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @agent_bp.route('/load_history', methods=['POST'])
 def load_history():
     """加载历史消息到会话"""
@@ -170,3 +211,49 @@ def load_history():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@agent_bp.route('/recover', methods=['POST'])
+def recover_session():
+    """尝试恢复会话（用于服务器重启后的会话恢复）"""
+    data = request.get_json()
+    user_id = data.get('user_id')
+    mask_id = data.get('mask_id')
+    agent_type = data.get('agent_type', 'default')
+    session_id = data.get('session_id')  # 可选，如果提供则尝试恢复特定会话
+    
+    current_app.logger.info(f"尝试恢复会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_id: {session_id}")
+    
+    if not user_id or not mask_id:
+        return jsonify({'error': '缺少必要参数 user_id 或 mask_id'}), 400
+    
+    try:
+        # 如果提供了session_id，先检查是否已存在
+        if session_id:
+            existing_agent = session_manager.get_session(session_id)
+            if existing_agent:
+                current_app.logger.info(f"会话已存在，无需恢复 - session_id: {session_id}")
+                return jsonify({
+                    'success': True,
+                    'session_id': session_id,
+                    'message': '会话已存在',
+                    'recovered': False
+                })
+        
+        # 尝试创建新会话（如果持久化文件中有数据，会自动恢复）
+        new_session_id = session_manager.create_session(user_id, mask_id, agent_type)
+        
+        # 检查是否是恢复的会话还是新创建的会话
+        is_recovered = session_id and new_session_id == session_id
+        
+        current_app.logger.info(f"会话恢复{'成功' if is_recovered else '失败，已创建新会话'} - session_id: {new_session_id}")
+        
+        return jsonify({
+            'success': True,
+            'session_id': new_session_id,
+            'message': '会话恢复成功' if is_recovered else '已创建新会话',
+            'recovered': is_recovered
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"会话恢复失败: {str(e)}")
+        return jsonify({'error': f'会话恢复失败: {str(e)}'}), 500
