@@ -977,7 +977,6 @@ function Chat() {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const { submitKey, shouldSubmit } = useSubmitHandler();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrolledToBottom = scrollRef?.current
@@ -1091,18 +1090,8 @@ function Chat() {
       return;
     }
 
-    // Check if current session has agent type to avoid dual loading
-    const hasAgentType = (session.mask as any).agentType;
-
-    if (!hasAgentType) {
-      setIsLoading(true);
-    }
-
-    chatStore.onUserInput(userInput, attachImages).then(() => {
-      if (!hasAgentType) {
-        setIsLoading(false);
-      }
-    });
+    // 统一通过Agent处理所有对话，无需区分普通对话和Agent对话
+    chatStore.onUserInput(userInput, attachImages);
     setAttachImages([]);
     chatStore.setLastInput(userInput);
     setUserInput("");
@@ -1250,31 +1239,11 @@ function Chat() {
     deleteMessage(userMessage.id);
     deleteMessage(botMessage?.id);
 
-    // resend the message
-    const hasAgentType = (session.mask as any).agentType;
-
-    if (!hasAgentType) {
-      setIsLoading(true);
-    }
-
+    // 统一通过Agent处理重发消息，无需区分普通对话和Agent对话
     const textContent = getMessageTextContent(userMessage);
     const images = getMessageImages(userMessage);
 
-    if (hasAgentType) {
-      // 对于Agent类型，使用专门的Agent API重试逻辑
-      chatStore.callAgentAPI(
-        textContent,
-        images,
-        hasAgentType,
-        (session.mask as any).maskId,
-        true, // 标记为重试
-      );
-    } else {
-      // 对于普通聊天，使用原有逻辑
-      chatStore.onUserInput(textContent, images).then(() => {
-        setIsLoading(false);
-      });
-    }
+    chatStore.onUserInput(textContent, images);
     inputRef.current?.focus();
   };
 
@@ -1384,13 +1353,7 @@ function Chat() {
             ]
           : [],
       );
-  }, [
-    config.sendPreviewBubble,
-    context,
-    isLoading,
-    session.messages,
-    userInput,
-  ]);
+  }, [config.sendPreviewBubble, context, session.messages, userInput]);
 
   const [msgRenderIndex, _setMsgRenderIndex] = useState(
     Math.max(0, renderMessages.length - CHAT_PAGE_SIZE),
@@ -1841,15 +1804,8 @@ function Chat() {
                             {showActions && (
                               <div className={styles["chat-message-actions"]}>
                                 <div className={styles["chat-input-actions"]}>
-                                  {message.streaming ? (
-                                    <ChatAction
-                                      text={Locale.Chat.Actions.Stop}
-                                      icon={<StopIcon />}
-                                      onClick={() =>
-                                        onUserStop(message.id ?? i)
-                                      }
-                                    />
-                                  ) : (
+                                  {message.streaming ? // 隐藏流式输出过程中的停止按钮
+                                  null : (
                                     <>
                                       <ChatAction
                                         text={Locale.Chat.Actions.Retry}
