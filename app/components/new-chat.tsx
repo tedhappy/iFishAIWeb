@@ -72,7 +72,7 @@ export function NewChat() {
 
   const startGeneralChat = () => {
     setTimeout(() => {
-      // 创建通用助手的mask配置
+      // 创建通用助手的mask配置（注意：modelConfig仅用于前端展示，实际LLM配置在后端）
       const generalMask: Mask = {
         id: "general-assistant",
         name: "小鱼AI",
@@ -80,18 +80,19 @@ export function NewChat() {
         context: [],
         syncGlobalConfig: false,
         modelConfig: {
-          model: "qwen-turbo-latest",
-          temperature: 0.7,
-          top_p: 1,
-          max_tokens: 2000,
-          presence_penalty: 0,
-          frequency_penalty: 0,
+          // 以下配置仅用于前端展示，实际LLM调用由后端Agent处理
+          model: "qwen-turbo-latest", // 展示用
+          temperature: 0.7, // 展示用
+          top_p: 1, // 展示用
+          max_tokens: 2000, // 展示用
+          presence_penalty: 0, // 展示用
+          frequency_penalty: 0, // 展示用
           sendMemory: true,
           historyMessageCount: 4,
           compressMessageLengthThreshold: 1000,
           enableInjectSystemPrompts: true,
           template: "",
-          providerName: ServiceProvider.Alibaba,
+          providerName: ServiceProvider.Alibaba, // 展示用
           compressModel: "",
           compressProviderName: "",
           size: "1024x1024",
@@ -101,7 +102,7 @@ export function NewChat() {
         lang: "cn",
         builtin: true,
         createdAt: Date.now(),
-        agentType: "general", // 使用通用助手
+        agentType: "general", // 使用后端通用助手
         sessionUuid: nanoid(), // 生成唯一会话标识符
       };
 

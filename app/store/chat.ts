@@ -8,13 +8,8 @@ import { logger } from "../utils/logger";
 
 import { indexedDBStorage } from "@/app/utils/indexedDB-storage";
 import { nanoid } from "nanoid";
-import type {
-  ClientApi,
-  MultimodalContent,
-  RequestMessage,
-} from "../client/api";
+import type { ClientApi, RequestMessage } from "../client/api";
 import { getClientApi } from "../client/api";
-import { ChatControllerPool } from "../client/controller";
 import { showToast } from "../components/ui-lib";
 import {
   DEFAULT_INPUT_TEMPLATE,
@@ -30,7 +25,6 @@ import {
   SUMMARIZE_MODEL,
 } from "../constant";
 import Locale, { getLang } from "../locales";
-import { prettyObject } from "../utils/format";
 import { createPersistStore } from "../utils/store";
 import { estimateTokenLength } from "../utils/token";
 import { ModelConfig, ModelType, useAppConfig } from "./config";
@@ -463,164 +457,28 @@ export const useChatStore = createPersistStore(
         isMcpResponse?: boolean,
       ) {
         const session = get().currentSession();
-        const modelConfig = session.mask.modelConfig;
 
         // Debug: 打印当前会话配置
         logger.debug("Current session mask:", session.mask);
-        logger.debug("Current modelConfig:", modelConfig);
-        logger.debug("Provider name:", modelConfig.providerName);
 
-        // Check if this session has agent configuration
+        // Check if this session has specific agent configuration
         const agentType = (session.mask as any).agentType;
         const maskId = session.mask.id;
 
-        if (agentType) {
-          // Use Agent API only, avoid dual loading
-          return await get().callAgentAPI(
-            content,
-            attachImages,
-            agentType,
-            maskId,
-          );
-        }
+        // Use Agent API for all requests
+        // If no specific agent type, use default general agent
+        const finalAgentType = agentType || "general";
 
-        // Original LLM API logic
-        // 打印用户输入的问题和对应的模型信息
         logger.info(
-          `[LLM聊天请求] 用户输入: "${content}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}`,
+          `[Agent聊天请求] 用户输入: "${content}", Agent类型: ${finalAgentType}`,
         );
 
-        // MCP Response no need to fill template
-        let mContent: string | MultimodalContent[] = isMcpResponse
-          ? content
-          : fillTemplateWith(content, modelConfig);
-
-        if (!isMcpResponse && attachImages && attachImages.length > 0) {
-          mContent = [
-            ...(content ? [{ type: "text" as const, text: content }] : []),
-            ...attachImages.map((url) => ({
-              type: "image_url" as const,
-              image_url: { url },
-            })),
-          ];
-        }
-
-        let userMessage: ChatMessage = createMessage({
-          role: "user",
-          content: mContent,
-          isMcpResponse,
-        });
-
-        const botMessage: ChatMessage = createMessage({
-          role: "assistant",
-          streaming: true,
-          model: modelConfig.model,
-        });
-
-        // get recent messages
-        const recentMessages = await get().getMessagesWithMemory();
-        const sendMessages = recentMessages.concat(userMessage);
-        const messageIndex = session.messages.length + 1;
-
-        // save user's and bot's message
-        get().updateTargetSession(session, (session) => {
-          const savedUserMessage = {
-            ...userMessage,
-            content: mContent,
-          };
-          session.messages = session.messages.concat([
-            savedUserMessage,
-            botMessage,
-          ]);
-        });
-
-        const api: ClientApi = getClientApi(modelConfig.providerName);
-        logger.debug(
-          "Using API client for provider:",
-          modelConfig.providerName,
+        return await get().callAgentAPI(
+          content,
+          attachImages,
+          finalAgentType,
+          maskId,
         );
-        logger.debug("API client:", api);
-        logger.debug("LLM instance:", api.llm);
-        // make request
-        api.llm.chat({
-          messages: sendMessages,
-          config: { ...modelConfig, stream: true },
-          onUpdate(message) {
-            botMessage.streaming = true;
-            if (message) {
-              botMessage.content = message;
-            }
-            get().updateTargetSession(session, (session) => {
-              session.messages = session.messages.concat();
-            });
-          },
-          async onFinish(message) {
-            botMessage.streaming = false;
-            if (message) {
-              // 打印LLM模型的响应
-              logger.info(
-                `[LLM聊天响应] 模型回复: "${message}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}`,
-              );
-
-              botMessage.content = message;
-              botMessage.date = new Date().toLocaleString();
-              get().onNewMessage(botMessage, session);
-            }
-            ChatControllerPool.remove(session.id, botMessage.id);
-          },
-          onBeforeTool(tool: ChatMessageTool) {
-            (botMessage.tools = botMessage?.tools || []).push(tool);
-            get().updateTargetSession(session, (session) => {
-              session.messages = session.messages.concat();
-            });
-          },
-          onAfterTool(tool: ChatMessageTool) {
-            botMessage?.tools?.forEach((t, i, tools) => {
-              if (tool.id == t.id) {
-                tools[i] = { ...tool };
-              }
-            });
-            get().updateTargetSession(session, (session) => {
-              session.messages = session.messages.concat();
-            });
-          },
-          onError(error) {
-            const isAborted = error.message?.includes?.("aborted");
-
-            // 打印LLM错误信息
-            logger.error(
-              `[LLM聊天错误] 用户输入: "${content}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}, 错误信息:`,
-              error,
-            );
-
-            botMessage.content +=
-              "\n\n" +
-              prettyObject({
-                error: true,
-                message: error.message,
-              });
-            botMessage.streaming = false;
-            userMessage.isError = !isAborted;
-            botMessage.isError = !isAborted;
-            get().updateTargetSession(session, (session) => {
-              session.messages = session.messages.concat();
-            });
-            ChatControllerPool.remove(
-              session.id,
-              botMessage.id ?? messageIndex,
-            );
-
-            logger.error("Chat failed:", error);
-          },
-          onController(controller) {
-            // collect controller for stop/retry
-            ChatControllerPool.addController(
-              session.id,
-              botMessage.id ?? messageIndex,
-              controller,
-            );
-          },
-        });
       },
 
       async callAgentAPI(
@@ -1080,12 +938,12 @@ export const useChatStore = createPersistStore(
         const config = useAppConfig.getState();
         const session = targetSession;
         const modelConfig = session.mask.modelConfig;
-        // skip summarize when using dalle3?
+        // 如果使用dalle3模型则跳过总结
         if (isDalle3(modelConfig.model)) {
           return;
         }
 
-        // if not config compressModel, then using getSummarizeModel
+        // 如果没有配置压缩模型，则使用getSummarizeModel获取
         const [model, providerName] = modelConfig.compressModel
           ? [modelConfig.compressModel, modelConfig.compressProviderName]
           : getSummarizeModel(
@@ -1094,10 +952,10 @@ export const useChatStore = createPersistStore(
             );
         const api: ClientApi = getClientApi(providerName as ServiceProvider);
 
-        // remove error messages if any
+        // 移除错误消息
         const messages = session.messages;
 
-        // should summarize topic after chating more than 50 words
+        // 当聊天内容超过50个字符时才进行主题总结
         const SUMMARIZE_MIN_LEN = 50;
         if (
           (config.enableAutoGenerateTitle &&
@@ -1157,7 +1015,7 @@ export const useChatStore = createPersistStore(
         }
         const memoryPrompt = get().getMemoryPrompt();
         if (memoryPrompt) {
-          // add memory prompt
+          // 添加记忆提示
           toBeSummarizedMsgs.unshift(memoryPrompt);
         }
 
@@ -1174,9 +1032,7 @@ export const useChatStore = createPersistStore(
           historyMsgLength > modelConfig.compressMessageLengthThreshold &&
           modelConfig.sendMemory
         ) {
-          /** Destruct max_tokens while summarizing
-           * this param is just shit
-           **/
+          // 在总结时解构max_tokens参数
           const { max_tokens, ...modelcfg } = modelConfig;
           api.llm.chat({
             messages: toBeSummarizedMsgs.concat(
@@ -1200,7 +1056,7 @@ export const useChatStore = createPersistStore(
                 logger.debug("Memory:", message);
                 get().updateTargetSession(session, (session) => {
                   session.lastSummarizeIndex = lastSummarizeIndex;
-                  session.memoryPrompt = message; // Update the memory prompt for stored it in local storage
+                  session.memoryPrompt = message; // 更新记忆提示并存储到本地存储
                 });
               }
             },

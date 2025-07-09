@@ -142,11 +142,17 @@ class TicketAgent(BaseAgent):
     """门票助手Agent"""
     
     def _init_agent(self) -> Assistant:
+        # LLM配置 - 使用环境变量中的阿里云API密钥
+        import os
         llm_cfg = {
             'model': 'qwen-turbo-latest',
+            'api_key': os.getenv('ALIBABA_API_KEY'),  # 从环境变量获取API密钥
             'timeout': 30,
             'retry_count': 3,
         }
+        
+        # 记录配置信息（不记录敏感信息）
+        logger.info(f"[TicketAgent] 初始化LLM配置 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}")
         
         return Assistant(
             llm=llm_cfg,

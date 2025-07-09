@@ -69,14 +69,16 @@ export const DEFAULT_CONFIG = {
   customModels: "",
   models: DEFAULT_MODELS as any as LLMModel[],
 
+  // 注意：以下modelConfig仅用于前端展示，实际的LLM配置和调用都在后端Agent中处理
+  // 前端统一使用后端Agent进行对话，不再直接调用LLM API
   modelConfig: {
-    model: defaultConfig.defaultModel as ModelType, // 使用环境变量配置的默认模型
-    providerName: defaultConfig.defaultProvider, // 使用环境变量配置的默认提供商
-    temperature: 0.5,
-    top_p: 1,
-    max_tokens: 4000,
-    presence_penalty: 0,
-    frequency_penalty: 0,
+    model: defaultConfig.defaultModel as ModelType, // 仅用于展示的默认模型
+    providerName: defaultConfig.defaultProvider, // 仅用于展示的默认提供商
+    temperature: 0.5, // 仅用于展示
+    top_p: 1, // 仅用于展示
+    max_tokens: 4000, // 仅用于展示
+    presence_penalty: 0, // 仅用于展示
+    frequency_penalty: 0, // 仅用于展示
     sendMemory: true,
     historyMessageCount: 4,
     compressMessageLengthThreshold: 1000,
