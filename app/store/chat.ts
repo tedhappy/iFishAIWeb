@@ -382,6 +382,9 @@ export const useChatStore = createPersistStore(
             .catch((error) => {
               logger.warn(`删除后端Agent会话异常: ${agentSessionId}`, error);
             });
+
+          // 清除前端存储的agentSessionId，避免重新创建会话时使用无效的session_id
+          (deletedSession as any).agentSessionId = undefined;
         }
 
         const sessions = get().sessions.slice();
