@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logger } from "../utils/logger";
 import { getServerSideConfig } from "../config/server";
 import md5 from "spark-md5";
 import { ACCESS_CODE_PREFIX, ModelProvider } from "../constant";
@@ -33,11 +34,11 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
   const hashedCode = md5.hash(accessCode ?? "").trim();
 
   const serverConfig = getServerSideConfig();
-  console.log("[Auth] allowed hashed codes: ", [...serverConfig.codes]);
-  console.log("[Auth] got access code:", accessCode);
-  console.log("[Auth] hashed access code:", hashedCode);
-  console.log("[User IP] ", getIP(req));
-  console.log("[Time] ", new Date().toLocaleString());
+  logger.log("[Auth] allowed hashed codes: ", [...serverConfig.codes]);
+  logger.log("[Auth] got access code:", accessCode);
+  logger.log("[Auth] hashed access code:", hashedCode);
+  logger.log("[User IP] ", getIP(req));
+  logger.log("[Time] ", new Date().toLocaleString());
 
   if (serverConfig.needCode && !serverConfig.codes.has(hashedCode) && !apiKey) {
     return {
@@ -114,13 +115,13 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
     }
 
     if (systemApiKey) {
-      console.log("[Auth] use system api key");
+      logger.log("[Auth] use system api key");
       req.headers.set("Authorization", `Bearer ${systemApiKey}`);
     } else {
-      console.log("[Auth] admin did not provide an api key");
+      logger.log("[Auth] admin did not provide an api key");
     }
   } else {
-    console.log("[Auth] use user api key");
+    logger.log("[Auth] use user api key");
   }
 
   return {

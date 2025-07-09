@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from routes.agent_routes import agent_bp
 from routes.auth_routes import auth_bp
+import logging
+import traceback
+from utils.logger import logger
 from utils.session_manager import SessionManager
 import os
 import logging
@@ -22,16 +25,15 @@ app.config['ENABLE_MCP'] = True  # 默认开启MCP功能
 app.register_blueprint(agent_bp, url_prefix='/flask/agent')
 app.register_blueprint(auth_bp, url_prefix='/flask/auth')
 
-# 配置日志
-logging.basicConfig(level=logging.DEBUG)
-app.logger.setLevel(logging.DEBUG)
+# 配置日志 - 使用自定义logger
+logger.info("Flask应用启动，日志系统已初始化")
 
 # 全局错误处理器
 @app.errorhandler(500)
 def internal_error(error):
     """处理500错误"""
-    app.logger.error(f"Internal Server Error: {error}")
-    app.logger.error(f"Traceback: {traceback.format_exc()}")
+    logger.error(f"Internal Server Error: {error}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
     return jsonify({
         'error': 'Internal Server Error',
         'message': str(error),
@@ -41,8 +43,8 @@ def internal_error(error):
 @app.errorhandler(Exception)
 def handle_exception(e):
     """处理所有未捕获的异常"""
-    app.logger.error(f"Unhandled Exception: {e}")
-    app.logger.error(f"Traceback: {traceback.format_exc()}")
+    logger.error(f"Unhandled Exception: {e}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
     return jsonify({
         'error': 'Unhandled Exception',
         'message': str(e),

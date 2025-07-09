@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "../utils/logger";
 import { getServerSideConfig } from "../config/server";
 import { ServiceProvider } from "../constant";
 
@@ -43,8 +44,8 @@ export async function requestOpenai(req: NextRequest) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  logger.log("[Proxy] ", path);
+  logger.log("[Base Url]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -85,14 +86,14 @@ export async function requestOpenai(req: NextRequest) {
           }
         });
       if (realDeployName) {
-        console.log("[Replace with DeployId", realDeployName);
+        logger.log("[Replace with DeployId", realDeployName);
         path = path.replaceAll(modelName, realDeployName);
       }
     }
   }
 
   const fetchUrl = cloudflareAIGatewayUrl(`${baseUrl}/${path}`);
-  console.log("fetchUrl", fetchUrl);
+  logger.log("fetchUrl", fetchUrl);
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",
@@ -142,7 +143,7 @@ export async function requestOpenai(req: NextRequest) {
         );
       }
     } catch (e) {
-      console.error("[OpenAI] gpt4 filter", e);
+      logger.error("[OpenAI] gpt4 filter", e);
     }
   }
 
@@ -155,9 +156,9 @@ export async function requestOpenai(req: NextRequest) {
     // Check if serverConfig.openaiOrgId is defined and not an empty string
     if (serverConfig.openaiOrgId && serverConfig.openaiOrgId.trim() !== "") {
       // If openaiOrganizationHeader is present, log it; otherwise, log that the header is not present
-      console.log("[Org ID]", openaiOrganizationHeader);
+      logger.log("[Org ID]", openaiOrganizationHeader);
     } else {
-      console.log("[Org ID] is not set up.");
+      logger.log("[Org ID] is not set up.");
     }
 
     // to prevent browser prompt for credentials

@@ -24,6 +24,7 @@ import {
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
 import { preProcessImageContent } from "@/app/utils/chat";
+import { logger } from "@/app/utils/logger";
 
 interface BasePayload {
   model: string;
@@ -141,7 +142,7 @@ export class ChatGLMApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl, path);
+    logger.log("[Proxy Endpoint] ", baseUrl, path);
     return [baseUrl, path].join("/");
   }
 
@@ -175,7 +176,7 @@ export class ChatGLMApi implements LLMApi {
     const requestPayload = this.createPayload(messages, modelConfig, options);
     const path = this.path(this.getModelPath(modelType));
 
-    console.log(`[Request] glm ${modelType} payload: `, requestPayload);
+    logger.log(`[Request] glm ${modelType} payload: `, requestPayload);
 
     const controller = new AbortController();
     options.onController?.(controller);
@@ -198,7 +199,7 @@ export class ChatGLMApi implements LLMApi {
         clearTimeout(requestTimeoutId);
 
         const resJson = await res.json();
-        console.log(`[Response] glm ${modelType}:`, resJson);
+        logger.log(`[Response] glm ${modelType}:`, resJson);
         const message = this.parseResponse(modelType, resJson);
         options.onFinish(message, res);
         return;
@@ -274,7 +275,7 @@ export class ChatGLMApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.error("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

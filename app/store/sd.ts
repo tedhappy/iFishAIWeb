@@ -4,6 +4,7 @@ import {
   ACCESS_CODE_PREFIX,
   ApiPath,
 } from "@/app/constant";
+import { logger } from "@/app/utils/logger";
 import { getBearerToken } from "@/app/client/api";
 import { createPersistStore } from "@/app/utils/store";
 import { nanoid } from "nanoid";
@@ -104,7 +105,7 @@ export const useSdStore = createPersistStore<
             if (resData.finish_reason === "SUCCESS") {
               uploadImage(base64Image2Blob(resData.image, "image/png"))
                 .then((img_data) => {
-                  console.debug("uploadImage success", img_data, self);
+                  logger.debug("uploadImage success", img_data, self);
                   self.updateDraw({
                     ...data,
                     status: "success",
@@ -112,7 +113,7 @@ export const useSdStore = createPersistStore<
                   });
                 })
                 .catch((e) => {
-                  console.error("uploadImage error", e);
+                  logger.error("uploadImage error", e);
                   self.updateDraw({
                     ...data,
                     status: "error",
@@ -130,7 +131,7 @@ export const useSdStore = createPersistStore<
           })
           .catch((error) => {
             this.updateDraw({ ...data, status: "error", error: error.message });
-            console.error("Error:", error);
+            logger.error("Error:", error);
             this.getNextId();
           });
       },

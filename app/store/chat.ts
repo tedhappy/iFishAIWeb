@@ -4,6 +4,7 @@ import {
   safeLocalStorage,
   trimTopic,
 } from "../utils";
+import { logger } from "../utils/logger";
 
 import { indexedDBStorage } from "@/app/utils/indexedDB-storage";
 import { nanoid } from "nanoid";
@@ -413,9 +414,9 @@ export const useChatStore = createPersistStore(
         const modelConfig = session.mask.modelConfig;
 
         // Debug: 打印当前会话配置
-        console.log("[Debug] Current session mask:", session.mask);
-        console.log("[Debug] Current modelConfig:", modelConfig);
-        console.log("[Debug] Provider name:", modelConfig.providerName);
+        logger.debug("Current session mask:", session.mask);
+        logger.debug("Current modelConfig:", modelConfig);
+        logger.debug("Provider name:", modelConfig.providerName);
 
         // Check if this session has agent configuration
         const agentType = (session.mask as any).agentType;
@@ -432,6 +433,11 @@ export const useChatStore = createPersistStore(
         }
 
         // Original LLM API logic
+        // 打印用户输入的问题和对应的模型信息
+        logger.info(
+          `[LLM聊天请求] 用户输入: "${content}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}`,
+        );
+
         // MCP Response no need to fill template
         let mContent: string | MultimodalContent[] = isMcpResponse
           ? content
@@ -477,12 +483,12 @@ export const useChatStore = createPersistStore(
         });
 
         const api: ClientApi = getClientApi(modelConfig.providerName);
-        console.log(
-          "[Debug] Using API client for provider:",
+        logger.debug(
+          "Using API client for provider:",
           modelConfig.providerName,
         );
-        console.log("[Debug] API client:", api);
-        console.log("[Debug] LLM instance:", api.llm);
+        logger.debug("API client:", api);
+        logger.debug("LLM instance:", api.llm);
         // make request
         api.llm.chat({
           messages: sendMessages,
@@ -499,6 +505,11 @@ export const useChatStore = createPersistStore(
           async onFinish(message) {
             botMessage.streaming = false;
             if (message) {
+              // 打印LLM模型的响应
+              logger.info(
+                `[LLM聊天响应] 模型回复: "${message}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}`,
+              );
+
               botMessage.content = message;
               botMessage.date = new Date().toLocaleString();
               get().onNewMessage(botMessage, session);
@@ -523,6 +534,13 @@ export const useChatStore = createPersistStore(
           },
           onError(error) {
             const isAborted = error.message?.includes?.("aborted");
+
+            // 打印LLM错误信息
+            logger.error(
+              `[LLM聊天错误] 用户输入: "${content}", 模型: ${modelConfig.model}, 提供商: ${modelConfig.providerName}, 错误信息:`,
+              error,
+            );
+
             botMessage.content +=
               "\n\n" +
               prettyObject({
@@ -540,7 +558,7 @@ export const useChatStore = createPersistStore(
               botMessage.id ?? messageIndex,
             );
 
-            console.error("[Chat] failed ", error);
+            logger.error("Chat failed:", error);
           },
           onController(controller) {
             // collect controller for stop/retry
@@ -646,8 +664,8 @@ export const useChatStore = createPersistStore(
               clearTimeout(timeoutId);
 
               if (!testResponse.ok || testResponse.status === 404) {
-                console.log(
-                  "[Agent API] Session validation failed, session not found or expired",
+                logger.warn(
+                  "Agent API Session validation failed, session not found or expired",
                 );
                 needsInit = true;
                 sessionId = null;
@@ -655,8 +673,8 @@ export const useChatStore = createPersistStore(
               } else {
                 const statusData = await testResponse.json();
                 if (!statusData.success || !statusData.exists) {
-                  console.log(
-                    "[Agent API] Session validation failed, session invalid",
+                  logger.warn(
+                    "Agent API Session validation failed, session invalid",
                   );
                   needsInit = true;
                   sessionId = null;
@@ -664,8 +682,8 @@ export const useChatStore = createPersistStore(
                 }
               }
             } catch (error) {
-              console.warn(
-                "[Agent API] Session validation failed, will reinitialize",
+              logger.warn(
+                "Agent API Session validation failed, will reinitialize",
                 error,
               );
               needsInit = true;
@@ -702,15 +720,15 @@ export const useChatStore = createPersistStore(
                   if (recoverData.success) {
                     sessionId = recoverData.session_id;
                     (session as any).agentSessionId = sessionId;
-                    console.log(
-                      `[Agent API] Session recovery ${recoverData.recovered ? "successful" : "created new"}: ${sessionId}`,
+                    logger.info(
+                      `Agent API Session recovery ${recoverData.recovered ? "successful" : "created new"}: ${sessionId}`,
                     );
                     needsInit = false;
                   }
                 }
               } catch (error) {
-                console.warn(
-                  "[Agent API] Session recovery failed, will create new session",
+                logger.warn(
+                  "Agent API Session recovery failed, will create new session",
                   error,
                 );
               }
@@ -753,19 +771,24 @@ export const useChatStore = createPersistStore(
             }),
           });
 
-          console.log(
-            `[Agent API] Sending chat request with session_id: ${sessionId}`,
+          // 打印用户输入的问题和对应的agent信息
+          logger.info(
+            `[聊天请求] 用户输入: "${content}", Agent类型: ${agentType || "ticket"}, 会话ID: ${sessionId}`,
+          );
+
+          logger.info(
+            `Agent API Sending chat request with session_id: ${sessionId}`,
           );
 
           if (!chatResponse.ok) {
             // 如果chat请求失败，可能是session过期
             if (chatResponse.status === 404) {
-              console.warn("[Agent API] Session not found, clearing sessionId");
+              logger.warn("Agent API Session not found, clearing sessionId");
               (session as any).agentSessionId = null;
 
               // 如果不是重试，则自动重试一次
               if (!isRetry) {
-                console.log("[Agent API] Attempting auto-retry...");
+                logger.info("Agent API Attempting auto-retry...");
                 return await get().callAgentAPI(
                   content,
                   attachImages,
@@ -788,6 +811,11 @@ export const useChatStore = createPersistStore(
 
           const responseData = await chatResponse.json();
 
+          // 打印后端/大模型的响应
+          logger.info(
+            `[聊天响应] Agent回复: "${responseData.response || "Agent暂无回复"}", 会话ID: ${sessionId}`,
+          );
+
           // Update bot message with response
           botMessage.streaming = false;
           botMessage.content = responseData.response || "Agent暂无回复";
@@ -800,7 +828,13 @@ export const useChatStore = createPersistStore(
 
           get().onNewMessage(botMessage, session);
         } catch (error) {
-          console.error("[Agent API] Error:", error);
+          // 打印错误信息
+          logger.error(
+            `[聊天错误] 用户输入: "${content}", Agent类型: ${agentType || "ticket"}, 错误信息:`,
+            error,
+          );
+
+          logger.error("Agent API Error:", error);
 
           // Update bot message with error
           botMessage.streaming = false;
@@ -904,8 +938,8 @@ export const useChatStore = createPersistStore(
         }
 
         if (shouldInjectSystemPrompts || mcpEnabled) {
-          console.log(
-            "[Global System Prompt] ",
+          logger.debug(
+            "Global System Prompt:",
             systemPrompts.at(0)?.content ?? "empty",
           );
         }
@@ -1071,8 +1105,8 @@ export const useChatStore = createPersistStore(
 
         const lastSummarizeIndex = session.messages.length;
 
-        console.log(
-          "[Chat History] ",
+        logger.debug(
+          "Chat History:",
           toBeSummarizedMsgs,
           historyMsgLength,
           modelConfig.compressMessageLengthThreshold,
@@ -1105,7 +1139,7 @@ export const useChatStore = createPersistStore(
             },
             onFinish(message, responseRes) {
               if (responseRes?.status === 200) {
-                console.log("[Memory] ", message);
+                logger.debug("Memory:", message);
                 get().updateTargetSession(session, (session) => {
                   session.lastSummarizeIndex = lastSummarizeIndex;
                   session.memoryPrompt = message; // Update the memory prompt for stored it in local storage
@@ -1113,7 +1147,7 @@ export const useChatStore = createPersistStore(
               }
             },
             onError(err) {
-              console.error("[Summarize] ", err);
+              logger.error("Summarize error:", err);
             },
           });
         }
@@ -1155,11 +1189,11 @@ export const useChatStore = createPersistStore(
           try {
             const mcpRequest = extractMcpJson(content);
             if (mcpRequest) {
-              console.debug("[MCP Request]", mcpRequest);
+              logger.debug("MCP Request:", mcpRequest);
 
               executeMcpAction(mcpRequest.clientId, mcpRequest.mcp)
                 .then((result) => {
-                  console.log("[MCP Response]", result);
+                  logger.debug("MCP Response:", result);
                   const mcpResponse =
                     typeof result === "object"
                       ? JSON.stringify(result)
@@ -1173,7 +1207,7 @@ export const useChatStore = createPersistStore(
                 .catch((error) => showToast("MCP execution failed", error));
             }
           } catch (error) {
-            console.error("[Check MCP JSON]", error);
+            logger.error("Check MCP JSON error:", error);
           }
         }
       },

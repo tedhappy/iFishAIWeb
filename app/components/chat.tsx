@@ -61,6 +61,7 @@ import {
   supportsCustomSize,
   useMobileScreen,
   selectOrCopy,
+  logger,
 } from "../utils";
 
 import { uploadImage as uploadImageRemote } from "@/app/utils/chat";
@@ -1154,7 +1155,7 @@ function Chat() {
 
       // auto sync mask config from global config
       if (session.mask.syncGlobalConfig) {
-        console.log("[Mask] syncing from global, name = ", session.mask.name);
+        logger.log("[Mask] syncing from global, name = ", session.mask.name);
         session.mask.modelConfig = { ...config.modelConfig };
       }
     });
@@ -1213,7 +1214,7 @@ function Chat() {
     );
 
     if (resendingIndex < 0 || resendingIndex >= session.messages.length) {
-      console.error("[Chat] failed to find resending message", message);
+      logger.error("[Chat] failed to find resending message", message);
       return;
     }
 
@@ -1241,7 +1242,7 @@ function Chat() {
     }
 
     if (userMessage === undefined) {
-      console.error("[Chat] failed to resend", message);
+      logger.error("[Chat] failed to resend", message);
       return;
     }
 
@@ -1329,7 +1330,7 @@ function Chat() {
           setSpeechStatus(false);
         })
         .catch((e) => {
-          console.error("[OpenAI Speech]", e);
+          logger.error("[OpenAI Speech]", e);
           showToast(prettyObject(e));
           setSpeechStatus(false);
         })
@@ -1456,7 +1457,7 @@ function Chat() {
     },
     code: (text) => {
       if (accessStore.disableFastLink) return;
-      console.log("[Command] got code from url: ", text);
+      logger.log("[Command] got code from url: ", text);
       showConfirm(Locale.URLCommand.Code + `code = ${text}`).then((res) => {
         if (res) {
           accessStore.update((access) => (access.accessCode = text));
@@ -1472,7 +1473,7 @@ function Chat() {
           url?: string;
         };
 
-        console.log("[Command] got settings from url: ", payload);
+        logger.log("[Command] got settings from url: ", payload);
 
         if (payload.key || payload.url) {
           showConfirm(
@@ -1492,7 +1493,7 @@ function Chat() {
           });
         }
       } catch {
-        console.error("[Command] failed to get settings from url: ", text);
+        logger.error("[Command] failed to get settings from url: ", text);
       }
     },
   });

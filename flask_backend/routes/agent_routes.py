@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from utils.session_manager import SessionManager
+from utils.logger import logger
 import uuid
 
 agent_bp = Blueprint('agent', __name__)
@@ -13,15 +14,15 @@ def init_agent():
     mask_id = data.get('mask_id')
     agent_type = data.get('agent_type', 'default')
     
-    current_app.logger.info(f"初始化Agent会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}")
+    logger.info(f"初始化Agent会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}")
     
     if not mask_id:
-        current_app.logger.error("缺少mask_id参数")
+        logger.error("缺少mask_id参数")
         return jsonify({'error': '缺少mask_id参数'}), 400
     
     try:
         session_id = session_manager.create_session(user_id, mask_id, agent_type)
-        current_app.logger.info(f"会话创建成功 - session_id: {session_id}")
+        logger.info(f"会话创建成功 - session_id: {session_id}")
         return jsonify({
             'success': True,
             'session_id': session_id,
@@ -29,7 +30,7 @@ def init_agent():
             'user_id': user_id
         })
     except Exception as e:
-        current_app.logger.error(f"创建会话失败: {str(e)}")
+        logger.error(f"创建会话失败: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @agent_bp.route('/chat', methods=['POST'])
@@ -44,19 +45,19 @@ def chat_with_agent():
     # 如果有file_paths就使用file_paths，否则使用file_path
     files = file_paths if file_paths else ([file_path] if file_path else [])
     
-    current_app.logger.info(f"收到聊天请求 - session_id: {session_id}, message: {message[:50] if message else None}..., files: {files}")
+    logger.info(f"收到聊天请求 - session_id: {session_id}, message: {message[:50] if message else None}..., files: {files}")
     
     if not session_id or not message:
-        current_app.logger.error(f"缺少必要参数 - session_id: {session_id}, message: {bool(message)}")
+        logger.error(f"缺少必要参数 - session_id: {session_id}, message: {bool(message)}")
         return jsonify({'error': '缺少必要参数'}), 400
     
     agent = session_manager.get_session(session_id)
-    current_app.logger.info(f"查找会话结果 - session_id: {session_id}, agent存在: {agent is not None}")
-    current_app.logger.info(f"当前活跃会话数: {session_manager.get_session_count()}")
-    current_app.logger.info(f"所有会话ID: {list(session_manager.sessions.keys())}")
+    logger.info(f"查找会话结果 - session_id: {session_id}, agent存在: {agent is not None}")
+    logger.info(f"当前活跃会话数: {session_manager.get_session_count()}")
+    logger.info(f"所有会话ID: {list(session_manager.sessions.keys())}")
     
     if not agent:
-        current_app.logger.error(f"会话不存在 - session_id: {session_id}")
+        logger.error(f"会话不存在 - session_id: {session_id}")
         return jsonify({'error': '会话不存在'}), 404
     
     try:
@@ -70,10 +71,10 @@ def chat_with_agent():
             # 使用SessionManager的统一方法
             response = session_manager.chat_with_agent(session_id, message)
         
-        current_app.logger.info(f"聊天响应成功 - session_id: {session_id}")
+        logger.info(f"聊天响应成功 - session_id: {session_id}")
         return jsonify(response)
     except Exception as e:
-        current_app.logger.error(f"聊天处理失败 - session_id: {session_id}, error: {str(e)}")
+        logger.error(f"聊天处理失败 - session_id: {session_id}, error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @agent_bp.route('/history/<session_id>', methods=['GET'])
@@ -159,7 +160,7 @@ def get_status():
 @agent_bp.route('/session/<session_id>/status', methods=['GET'])
 def check_session_status(session_id):
     """检查特定会话的状态"""
-    current_app.logger.info(f"检查会话状态 - session_id: {session_id}")
+    logger.info(f"检查会话状态 - session_id: {session_id}")
     
     if not session_id:
         return jsonify({'error': '缺少session_id参数'}), 400
@@ -167,7 +168,7 @@ def check_session_status(session_id):
     try:
         agent = session_manager.get_session(session_id)
         if not agent:
-            current_app.logger.info(f"会话不存在 - session_id: {session_id}")
+            logger.info(f"会话不存在 - session_id: {session_id}")
             return jsonify({
                 'success': False,
                 'exists': False,
@@ -177,7 +178,7 @@ def check_session_status(session_id):
         # 更新会话的最后活跃时间
         session_manager.touch_session(session_id)
         
-        current_app.logger.info(f"会话状态正常 - session_id: {session_id}")
+        logger.info(f"会话状态正常 - session_id: {session_id}")
         return jsonify({
             'success': True,
             'exists': True,
@@ -186,7 +187,7 @@ def check_session_status(session_id):
             'message_count': len(agent.get_history()) if hasattr(agent, 'get_history') else 0
         })
     except Exception as e:
-        current_app.logger.error(f"检查会话状态失败 - session_id: {session_id}, error: {str(e)}")
+        logger.error(f"检查会话状态失败 - session_id: {session_id}, error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @agent_bp.route('/load_history', methods=['POST'])
@@ -221,7 +222,7 @@ def recover_session():
     agent_type = data.get('agent_type', 'default')
     session_id = data.get('session_id')  # 可选，如果提供则尝试恢复特定会话
     
-    current_app.logger.info(f"尝试恢复会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_id: {session_id}")
+    logger.info(f"尝试恢复会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_id: {session_id}")
     
     if not user_id or not mask_id:
         return jsonify({'error': '缺少必要参数 user_id 或 mask_id'}), 400
@@ -231,7 +232,7 @@ def recover_session():
         if session_id:
             existing_agent = session_manager.get_session(session_id)
             if existing_agent:
-                current_app.logger.info(f"会话已存在，无需恢复 - session_id: {session_id}")
+                logger.info(f"会话已存在，无需恢复 - session_id: {session_id}")
                 return jsonify({
                     'success': True,
                     'session_id': session_id,
@@ -245,7 +246,7 @@ def recover_session():
         # 检查是否是恢复的会话还是新创建的会话
         is_recovered = session_id and new_session_id == session_id
         
-        current_app.logger.info(f"会话恢复{'成功' if is_recovered else '失败，已创建新会话'} - session_id: {new_session_id}")
+        logger.info(f"会话恢复{'成功' if is_recovered else '失败，已创建新会话'} - session_id: {new_session_id}")
         
         return jsonify({
             'success': True,
@@ -255,5 +256,5 @@ def recover_session():
         })
         
     except Exception as e:
-        current_app.logger.error(f"会话恢复失败: {str(e)}")
+        logger.error(f"会话恢复失败: {str(e)}")
         return jsonify({'error': f'会话恢复失败: {str(e)}'}), 500

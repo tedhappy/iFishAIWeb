@@ -14,6 +14,7 @@ import { preProcessImageContent, stream } from "@/app/utils/chat";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils/logger";
 
 export type MultiBlockContent = {
   type: "image" | "text";
@@ -79,7 +80,7 @@ export class ClaudeApi implements LLMApi {
   }
 
   extractMessage(res: any) {
-    console.log("[Response] claude response: ", res);
+    logger.log("[Response] claude response: ", res);
 
     return res?.content?.[0]?.text;
   }
@@ -220,7 +221,7 @@ export class ClaudeApi implements LLMApi {
         controller,
         // parseSSE
         (text: string, runTools: ChatMessageTool[]) => {
-          // console.log("parseSSE", text, runTools);
+          // logger.log("parseSSE", text, runTools);
           let chunkJson:
             | undefined
             | {
@@ -326,7 +327,7 @@ export class ClaudeApi implements LLMApi {
         const message = this.extractMessage(resJson);
         options.onFinish(message, res);
       } catch (e) {
-        console.error("failed to chat", e);
+        logger.error("failed to chat", e);
         options.onError?.(e as Error);
       }
     }

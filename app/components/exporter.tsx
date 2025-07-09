@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { ChatMessage, useAppConfig, useChatStore } from "../store";
+import { logger } from "../utils/logger";
 import Locale from "../locales";
 import styles from "./exporter.module.scss";
 import {
@@ -277,7 +278,7 @@ export function RenderExport(props: {
       return {
         id: i.toString(),
         role: role as any,
-        content: role === "user" ? v.textContent ?? "" : v.innerHTML,
+        content: role === "user" ? (v.textContent ?? "") : v.innerHTML,
         date: "",
       };
     });
@@ -348,7 +349,7 @@ export function PreviewActions(props: {
         }, 800);
       })
       .catch((e) => {
-        console.error("[Share]", e);
+        logger.error("[Share]", e);
         showToast(prettyObject(e));
       })
       .finally(() => setLoading(false));
@@ -435,7 +436,7 @@ export function ImagePreviewer(props: {
             refreshPreview();
           });
       } catch (e) {
-        console.error("[Copy Image] ", e);
+        logger.error("[Copy Image] ", e);
         showToast(Locale.Copy.Failed);
       }
     });

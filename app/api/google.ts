@@ -3,6 +3,7 @@ import { auth } from "./auth";
 import { getServerSideConfig } from "@/app/config/server";
 import { ApiPath, GEMINI_BASE_URL, ModelProvider } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
+import { logger } from "@/app/utils/logger";
 
 const serverConfig = getServerSideConfig();
 
@@ -10,7 +11,7 @@ export async function handle(
   req: NextRequest,
   { params }: { params: { provider: string; path: string[] } },
 ) {
-  console.log("[Google Route] params ", params);
+  logger.log("[Google Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
@@ -44,7 +45,7 @@ export async function handle(
     const response = await request(req, apiKey);
     return response;
   } catch (e) {
-    console.error("[Google] ", e);
+    logger.error("[Google] ", e);
     return NextResponse.json(prettyObject(e));
   }
 }
@@ -83,8 +84,8 @@ async function request(req: NextRequest, apiKey: string) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  logger.log("[Proxy] ", path);
+  logger.log("[Base Url]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -96,7 +97,7 @@ async function request(req: NextRequest, apiKey: string) {
     req?.nextUrl?.searchParams?.get("alt") === "sse" ? "?alt=sse" : ""
   }`;
 
-  console.log("[Fetch Url] ", fetchUrl);
+  logger.log("[Fetch Url] ", fetchUrl);
   const fetchOptions: RequestInit = {
     headers: {
       "Content-Type": "application/json",

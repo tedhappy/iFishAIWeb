@@ -2,6 +2,7 @@
 import { Buffer } from "buffer";
 import { randomBytes } from "crypto";
 import { Readable } from "stream";
+import { logger } from "./logger";
 
 // Modified according to https://github.com/Migushthe2nd/MsEdgeTTS
 
@@ -133,7 +134,7 @@ export class MsEdgeTTS {
 
   private _log(...o: any[]) {
     if (this._enableLogger) {
-      console.log(...o);
+      logger.log(...o);
     }
   }
 

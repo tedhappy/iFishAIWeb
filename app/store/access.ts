@@ -20,6 +20,7 @@ import {
 } from "../constant";
 import { getHeaders } from "../client/api";
 import { getClientConfig } from "../config/client";
+import { logger } from "../utils/logger";
 import { createPersistStore } from "../utils/store";
 import { ensure } from "../utils/clone";
 import { DEFAULT_CONFIG } from "./config";
@@ -264,11 +265,11 @@ export const useAccessStore = createPersistStore(
           return res;
         })
         .then((res: DangerConfig) => {
-          console.log("[Config] got config from server", res);
+          logger.log("[Config] got config from server", res);
           set(() => ({ ...res }));
         })
         .catch(() => {
-          console.error("[Config] failed to fetch config");
+          logger.error("[Config] failed to fetch config");
         })
         .finally(() => {
           fetchState = 2;

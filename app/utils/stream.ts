@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 // using tauri command to send request
 // see src-tauri/src/stream.rs, and src-tauri/src/main.rs
 // 1. invoke('stream_fetch', {url, method, headers, body}), get response with headers.
@@ -39,7 +41,7 @@ export function fetch(url: string, options?: RequestInit): Promise<Response> {
       closed = true;
       unlisten && unlisten();
       writer.ready.then(() => {
-        writer.close().catch((e) => console.error(e));
+        writer.close().catch((e) => logger.error(e));
       });
     };
 
@@ -99,7 +101,7 @@ export function fetch(url: string, options?: RequestInit): Promise<Response> {
         return response;
       })
       .catch((e) => {
-        console.error("stream error", e);
+        logger.error("stream error", e);
         // throw e;
         return new Response("", { status: 599 });
       });

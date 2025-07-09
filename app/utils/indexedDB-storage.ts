@@ -1,6 +1,7 @@
 import { StateStorage } from "zustand/middleware";
 import { get, set, del, clear } from "idb-keyval";
-import { safeLocalStorage } from "@/app/utils";
+import { safeLocalStorage } from "../utils";
+import { logger } from "./logger";
 
 const localStorage = safeLocalStorage();
 
@@ -18,7 +19,7 @@ class IndexedDBStorage implements StateStorage {
     try {
       const _value = JSON.parse(value);
       if (!_value?.state?._hasHydrated) {
-        console.warn("skip setItem", name);
+        logger.warn("skip setItem", name);
         return;
       }
       await set(name, value);

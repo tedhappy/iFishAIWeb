@@ -28,6 +28,7 @@ import { preProcessImageContent } from "@/app/utils/chat";
 import { nanoid } from "nanoid";
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils";
 
 export class GeminiProApi implements LLMApi {
   path(path: string, shouldStream = false): string {
@@ -49,7 +50,7 @@ export class GeminiProApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl, path);
+    logger.log("[Proxy Endpoint] ", baseUrl, path);
 
     let chatPath = [baseUrl, path].join("/");
     if (shouldStream) {
@@ -59,7 +60,7 @@ export class GeminiProApi implements LLMApi {
     return chatPath;
   }
   extractMessage(res: any) {
-    console.log("[Response] gemini-pro response: ", res);
+    logger.log("[Response] gemini-pro response: ", res);
 
     const getTextFromParts = (parts: any[]) => {
       if (!Array.isArray(parts)) return "";
@@ -224,7 +225,7 @@ export class GeminiProApi implements LLMApi {
           controller,
           // parseSSE
           (text: string, runTools: ChatMessageTool[]) => {
-            // console.log("parseSSE", text, runTools);
+            // logger.log("parseSSE", text, runTools);
             const chunkJson = JSON.parse(text);
 
             const functionCall = chunkJson?.candidates
@@ -304,7 +305,7 @@ export class GeminiProApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.error("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

@@ -20,6 +20,7 @@ import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
 import { getMessageTextContent, getTimeoutMSByModel } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils/logger";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -67,7 +68,7 @@ export class ErnieApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl, path);
+    logger.log("[Proxy Endpoint] ", baseUrl, path);
 
     return [baseUrl, path].join("/");
   }
@@ -117,7 +118,7 @@ export class ErnieApi implements LLMApi {
       top_p: modelConfig.top_p,
     };
 
-    console.log("[Request] Baidu payload: ", requestPayload);
+    logger.log("[Request] Baidu payload: ", requestPayload);
 
     const controller = new AbortController();
     options.onController?.(controller);
@@ -163,7 +164,7 @@ export class ErnieApi implements LLMApi {
         function animateResponseText() {
           if (finished || controller.signal.aborted) {
             responseText += remainText;
-            console.log("[Response Animation] finished");
+            logger.log("[Response Animation] finished");
             if (responseText?.length === 0) {
               options.onError?.(new Error("empty response from server"));
             }
@@ -199,7 +200,7 @@ export class ErnieApi implements LLMApi {
           async onopen(res) {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
-            console.log("[Baidu] request response content type: ", contentType);
+            logger.log("[Baidu] request response content type: ", contentType);
             responseRes = res;
             if (contentType?.startsWith("text/plain")) {
               responseText = await res.clone().text();
@@ -245,7 +246,7 @@ export class ErnieApi implements LLMApi {
                 remainText += delta;
               }
             } catch (e) {
-              console.error("[Request] parse error", text, msg);
+              logger.error("[Request] parse error", text, msg);
             }
           },
           onclose() {
@@ -266,7 +267,7 @@ export class ErnieApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.error("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

@@ -1,3 +1,5 @@
+import { logger } from "@/app/utils";
+
 export class AudioHandler {
   private context: AudioContext;
   private mergeNode: ChannelMergerNode;
@@ -6,13 +8,13 @@ export class AudioHandler {
   private workletNode: AudioWorkletNode | null = null;
   private stream: MediaStream | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
-  private recordBuffer: Int16Array[] = [];
+  private recordBuffer: number[] = [];
   private readonly sampleRate = 24000;
 
   private nextPlayTime: number = 0;
   private isPlaying: boolean = false;
   private playbackQueue: AudioBufferSourceNode[] = [];
-  private playBuffer: Int16Array[] = [];
+  private playBuffer: number[] = [];
 
   constructor() {
     this.context = new AudioContext({ sampleRate: this.sampleRate });
@@ -66,9 +68,8 @@ export class AudioHandler {
 
           const uint8Data = new Uint8Array(int16Data.buffer);
           onChunk(uint8Data);
-          // save recordBuffer
-          // @ts-ignore
-          this.recordBuffer.push.apply(this.recordBuffer, int16Data);
+          // 保存录音缓冲区
+          this.recordBuffer.push(...int16Data);
         }
       };
 
@@ -78,7 +79,7 @@ export class AudioHandler {
 
       this.workletNode.port.postMessage({ command: "START_RECORDING" });
     } catch (error) {
-      console.error("Error starting recording:", error);
+      logger.error("Error starting recording:", error);
       throw error;
     }
   }
@@ -110,8 +111,8 @@ export class AudioHandler {
     if (!this.isPlaying) return;
 
     const int16Data = new Int16Array(chunk.buffer);
-    // @ts-ignore
-    this.playBuffer.push.apply(this.playBuffer, int16Data); // save playBuffer
+    // 保存播放缓冲区
+    this.playBuffer.push(...int16Data);
 
     const float32Data = new Float32Array(int16Data.length);
     for (let i = 0; i < int16Data.length; i++) {
@@ -172,8 +173,7 @@ export class AudioHandler {
     return new Blob([view, data.buffer], { type: "audio/mpeg" });
   }
   savePlayFile() {
-    // @ts-ignore
-    return this._saveData(new Int16Array(this.playBuffer));
+    return this._saveData(Int16Array.from(this.playBuffer));
   }
   saveRecordFile(
     audioStartMillis: number | undefined,
@@ -185,9 +185,9 @@ export class AudioHandler {
     const endIndex = audioEndMillis
       ? Math.floor((audioEndMillis * this.sampleRate) / 1000)
       : this.recordBuffer.length;
+    const slicedData = this.recordBuffer.slice(startIndex, endIndex);
     return this._saveData(
-      // @ts-ignore
-      new Int16Array(this.recordBuffer.slice(startIndex, endIndex)),
+      Int16Array.from(slicedData),
     );
   }
   async close() {

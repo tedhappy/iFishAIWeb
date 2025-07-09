@@ -17,6 +17,7 @@ import ReloadIcon from "../icons/reload.svg";
 import GithubIcon from "../icons/github.svg";
 
 import { Plugin, usePluginStore, FunctionToolService } from "../store/plugin";
+import { logger } from "../utils/logger";
 import {
   PasswordInput,
   List,
@@ -43,8 +44,8 @@ export function PluginPage() {
   const onSearch = (text: string) => {
     setSearchText(text);
     if (text.length > 0) {
-      const result = allPlugins.filter(
-        (m) => m?.title.toLowerCase().includes(text.toLowerCase()),
+      const result = allPlugins.filter((m) =>
+        m?.title.toLowerCase().includes(text.toLowerCase()),
       );
       setSearchPlugins(result);
     } else {
@@ -76,11 +77,11 @@ export function PluginPage() {
           }
         })
         .catch((e) => {
-          console.error(e);
+          logger.error(e);
           showToast(Locale.Plugin.EditModal.Error);
         });
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       showToast(Locale.Plugin.EditModal.Error);
     }
   }, 100).bind(null, editingPlugin);

@@ -1,6 +1,7 @@
 import { LLMModel } from "../client/api";
 import { DalleQuality, DalleStyle, ModelSize } from "../typing";
 import { getClientConfig } from "../config/client";
+import { logger } from "../utils/logger";
 import {
   DEFAULT_INPUT_TEMPLATE,
   DEFAULT_MODELS,
@@ -222,7 +223,7 @@ export const useAppConfig = createPersistStore(
           }));
         }
       } catch (error) {
-        console.error("[Config Store] Failed to update default config:", error);
+        logger.error("[Config Store] Failed to update default config:", error);
       }
     },
 

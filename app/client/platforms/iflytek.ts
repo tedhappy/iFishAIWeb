@@ -23,6 +23,7 @@ import { prettyObject } from "@/app/utils/format";
 import { getClientConfig } from "@/app/config/client";
 import { getMessageTextContent } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils/logger";
 
 import { RequestPayload } from "./openai";
 
@@ -51,7 +52,7 @@ export class SparkApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl, path);
+    logger.log("[Proxy Endpoint] ", baseUrl, path);
 
     return [baseUrl, path].join("/");
   }
@@ -92,7 +93,7 @@ export class SparkApi implements LLMApi {
       // Please do not ask me why not send max_tokens, no reason, this param is just shit, I dont want to explain anymore.
     };
 
-    console.log("[Request] Spark payload: ", requestPayload);
+    logger.log("[Request] Spark payload: ", requestPayload);
 
     const shouldStream = !!options.config.stream;
     const controller = new AbortController();
@@ -123,7 +124,7 @@ export class SparkApi implements LLMApi {
         function animateResponseText() {
           if (finished || controller.signal.aborted) {
             responseText += remainText;
-            console.log("[Response Animation] finished");
+            logger.log("[Response Animation] finished");
             return;
           }
 
@@ -156,7 +157,7 @@ export class SparkApi implements LLMApi {
           async onopen(res) {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
-            console.log("[Spark] request response content type: ", contentType);
+            logger.log("[Spark] request response content type: ", contentType);
             responseRes = res;
             if (contentType?.startsWith("text/plain")) {
               responseText = await res.clone().text();
@@ -205,7 +206,7 @@ export class SparkApi implements LLMApi {
                 remainText += delta;
               }
             } catch (e) {
-              console.error("[Request] parse error", text);
+              logger.error("[Request] parse error", text);
               options.onError?.(new Error(`Failed to parse response: ${text}`));
             }
           },
@@ -235,7 +236,7 @@ export class SparkApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.log("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

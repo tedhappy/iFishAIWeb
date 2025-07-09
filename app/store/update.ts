@@ -4,6 +4,7 @@ import {
   ModelProvider,
   StoreKey,
 } from "../constant";
+import { logger } from "../utils/logger";
 import { getClientConfig } from "../config/client";
 import { createPersistStore } from "../utils/store";
 import { clientUpdate } from "../utils";
@@ -127,9 +128,9 @@ export const useUpdateStore = createPersistStore(
               }
             });
         }
-        console.log("[Got Upstream] ", remoteId);
+        logger.log("[Got Upstream] ", remoteId);
       } catch (error) {
-        console.error("[Fetch Upstream Commit Id]", error);
+        logger.error("[Fetch Upstream Commit Id]", error);
       }
     },
 
@@ -153,7 +154,7 @@ export const useUpdateStore = createPersistStore(
           }));
         }
       } catch (e) {
-        console.error((e as Error).message);
+        logger.error((e as Error).message);
       }
     },
   }),

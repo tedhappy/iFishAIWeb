@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { showToast } from "./components/ui-lib";
 import Locale from "./locales";
 import { RequestMessage } from "./client/api";
+import { logger } from "@/app/utils/logger";
 import {
   REQUEST_TIMEOUT_MS,
   REQUEST_TIMEOUT_MS_FOR_THINKING,
@@ -12,6 +13,9 @@ import { fetch as tauriStreamFetch } from "./utils/stream";
 import { VISION_MODEL_REGEXES, EXCLUDE_VISION_MODEL_REGEXES } from "./constant";
 import { useAccessStore } from "./store";
 import { ModelSize } from "./typing";
+
+// Re-export logger for other modules
+export { logger };
 
 export function trimTopic(topic: string) {
   // Fix an issue where double quotes still show in the Indonesian language
@@ -382,6 +386,32 @@ export function safeLocalStorage(): {
 } {
   let storage: Storage | null;
 
+  // 安全的日志记录函数
+  const safeLog = {
+    error: (message: string, error?: any) => {
+      try {
+        if (typeof logger !== "undefined" && logger?.error) {
+          logger.error(message, error);
+        } else if (typeof console !== "undefined" && console?.error) {
+          console.error(message, error);
+        }
+      } catch (e) {
+        // 静默处理日志错误
+      }
+    },
+    warn: (message: string) => {
+      try {
+        if (typeof logger !== "undefined" && logger?.warn) {
+          logger.warn(message);
+        } else if (typeof console !== "undefined" && console?.warn) {
+          console.warn(message);
+        }
+      } catch (e) {
+        // 静默处理日志错误
+      }
+    },
+  };
+
   try {
     if (typeof window !== "undefined" && window.localStorage) {
       storage = window.localStorage;
@@ -389,7 +419,7 @@ export function safeLocalStorage(): {
       storage = null;
     }
   } catch (e) {
-    console.error("localStorage is not available:", e);
+    safeLog.error("localStorage is not available:", e);
     storage = null;
   }
 
@@ -398,7 +428,7 @@ export function safeLocalStorage(): {
       if (storage) {
         return storage.getItem(key);
       } else {
-        console.warn(
+        safeLog.warn(
           `Attempted to get item "${key}" from localStorage, but localStorage is not available.`,
         );
         return null;
@@ -408,7 +438,7 @@ export function safeLocalStorage(): {
       if (storage) {
         storage.setItem(key, value);
       } else {
-        console.warn(
+        safeLog.warn(
           `Attempted to set item "${key}" in localStorage, but localStorage is not available.`,
         );
       }
@@ -417,7 +447,7 @@ export function safeLocalStorage(): {
       if (storage) {
         storage.removeItem(key);
       } else {
-        console.warn(
+        safeLog.warn(
           `Attempted to remove item "${key}" from localStorage, but localStorage is not available.`,
         );
       }
@@ -426,7 +456,7 @@ export function safeLocalStorage(): {
       if (storage) {
         storage.clear();
       } else {
-        console.warn(
+        safeLog.warn(
           "Attempted to clear localStorage, but localStorage is not available.",
         );
       }
@@ -447,6 +477,19 @@ export function getOperationId(operation: {
 }
 
 export function clientUpdate() {
+  // 安全的日志记录函数
+  const safeLogError = (message: string, error?: any) => {
+    try {
+      if (typeof logger !== "undefined" && logger?.error) {
+        logger.error(message, error);
+      } else if (typeof console !== "undefined" && console?.error) {
+        console.error(message, error);
+      }
+    } catch (e) {
+      // 静默处理日志错误
+    }
+  };
+
   // this a wild for updating client app
   return window.__TAURI__?.updater
     .checkUpdate()
@@ -458,13 +501,13 @@ export function clientUpdate() {
             showToast(Locale.Settings.Update.Success);
           })
           .catch((e) => {
-            console.error("[Install Update Error]", e);
+            safeLogError("[Install Update Error]", e);
             showToast(Locale.Settings.Update.Failed);
           });
       }
     })
     .catch((e) => {
-      console.error("[Check Update Error]", e);
+      safeLogError("[Check Update Error]", e);
       showToast(Locale.Settings.Update.Failed);
     });
 }

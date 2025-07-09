@@ -1,4 +1,5 @@
 import { Mask } from "../store/mask";
+import { logger } from "@/app/utils/logger";
 
 import { type BuiltinMask } from "./typing";
 export { type BuiltinMask } from "./typing";
@@ -26,7 +27,7 @@ if (typeof window != "undefined") {
   fetch("/masks.json")
     .then((res) => res.json())
     .catch((error) => {
-      console.error("[Fetch] failed to fetch masks", error);
+      logger.error("[Fetch] failed to fetch masks", error);
       return { cn: [], en: [] };
     })
     .then((masks) => {

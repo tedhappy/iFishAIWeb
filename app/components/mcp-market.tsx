@@ -32,6 +32,7 @@ import clsx from "clsx";
 import PlayIcon from "../icons/play.svg";
 import StopIcon from "../icons/pause.svg";
 import { Path } from "../constant";
+import { logger } from "../utils/logger";
 
 interface ConfigProperty {
   type: string;
@@ -101,7 +102,7 @@ export function McpMarketPage() {
         const data = await response.json();
         setPresetServers(data?.data ?? []);
       } catch (error) {
-        console.error("Failed to load preset servers:", error);
+        logger.error("Failed to load preset servers:", error);
         showToast("Failed to load preset servers");
       } finally {
         setLoadingPresets(false);
@@ -123,7 +124,7 @@ export function McpMarketPage() {
         const statuses = await getClientsStatus();
         setClientStatuses(statuses);
       } catch (error) {
-        console.error("Failed to load initial state:", error);
+        logger.error("Failed to load initial state:", error);
         showToast("Failed to load initial state");
       } finally {
         setIsLoading(false);
@@ -236,7 +237,7 @@ export function McpMarketPage() {
       }
     } catch (error) {
       showToast("Failed to load tools");
-      console.error(error);
+      logger.error(error);
       setTools(null);
     }
   };
@@ -288,7 +289,7 @@ export function McpMarketPage() {
       showToast("Server stopped successfully");
     } catch (error) {
       showToast("Failed to stop server");
-      console.error(error);
+      logger.error(error);
     } finally {
       updateLoadingState(id, null);
     }
@@ -305,7 +306,7 @@ export function McpMarketPage() {
           ? error.message
           : "Failed to start server, please check logs",
       );
-      console.error(error);
+      logger.error(error);
     } finally {
       updateLoadingState(id, null);
     }
@@ -320,7 +321,7 @@ export function McpMarketPage() {
       showToast("Restarting all clients");
     } catch (error) {
       showToast("Failed to restart clients");
-      console.error(error);
+      logger.error(error);
     } finally {
       updateLoadingState("all", null);
     }

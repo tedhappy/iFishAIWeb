@@ -8,6 +8,7 @@ import {
 } from "@/app/constant";
 import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "../utils/logger";
 import { auth } from "./auth";
 import { isModelNotavailableInServer } from "@/app/utils/model";
 import { cloudflareAIGatewayUrl } from "@/app/utils/cloudflare";
@@ -18,7 +19,7 @@ export async function handle(
   req: NextRequest,
   { params }: { params: { path: string[] } },
 ) {
-  console.log("[Anthropic Route] params ", params);
+  logger.log("[Anthropic Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
@@ -27,7 +28,7 @@ export async function handle(
   const subpath = params.path.join("/");
 
   if (!ALLOWD_PATH.has(subpath)) {
-    console.log("[Anthropic Route] forbidden path ", subpath);
+    logger.log("[Anthropic Route] forbidden path ", subpath);
     return NextResponse.json(
       {
         error: true,
@@ -50,7 +51,7 @@ export async function handle(
     const response = await request(req);
     return response;
   } catch (e) {
-    console.error("[Anthropic] ", e);
+    logger.error("[Anthropic] ", e);
     return NextResponse.json(prettyObject(e));
   }
 }
@@ -80,8 +81,8 @@ async function request(req: NextRequest) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  logger.log("[Proxy] ", path);
+  logger.log("[Base Url]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -139,14 +140,14 @@ async function request(req: NextRequest) {
         );
       }
     } catch (e) {
-      console.error(`[Anthropic] filter`, e);
+      logger.error(`[Anthropic] filter`, e);
     }
   }
-  // console.log("[Anthropic request]", fetchOptions.headers, req.method);
+  // logger.log("[Anthropic request]", fetchOptions.headers, req.method);
   try {
     const res = await fetch(fetchUrl, fetchOptions);
 
-    // console.log(
+    // logger.log(
     //   "[Anthropic response]",
     //   res.status,
     //   "   ",

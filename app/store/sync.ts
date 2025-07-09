@@ -1,4 +1,5 @@
 import { getClientConfig } from "../config/client";
+import { logger } from "../utils/logger";
 import { ApiPath, STORAGE_KEY, StoreKey } from "../constant";
 import { createPersistStore } from "../utils/store";
 import {
@@ -77,7 +78,7 @@ export const useSyncStore = createPersistStore(
         setLocalAppState(localState);
         location.reload();
       } catch (e) {
-        console.error("[Import]", e);
+        logger.error("[Import]", e);
         showToast(Locale.Settings.Sync.ImportFailed);
       }
     },
@@ -98,7 +99,7 @@ export const useSyncStore = createPersistStore(
         const remoteState = await client.get(config.username);
         if (!remoteState || remoteState === "") {
           await client.set(config.username, JSON.stringify(localState));
-          console.log(
+          logger.log(
             "[Sync] Remote state is empty, using local state instead.",
           );
           return;
@@ -110,7 +111,7 @@ export const useSyncStore = createPersistStore(
           setLocalAppState(localState);
         }
       } catch (e) {
-        console.log("[Sync] failed to get remote state", e);
+        logger.log("[Sync] failed to get remote state", e);
         throw e;
       }
 

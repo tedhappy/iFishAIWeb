@@ -12,6 +12,7 @@ import time
 import json
 import numpy as np
 from typing import List
+from utils.logger import logger
 
 # 解决中文显示问题
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'SimSun', 'Arial Unicode MS']
@@ -30,38 +31,64 @@ class ExcSQLTool(BaseTool):
     }]
 
     def call(self, params: str, **kwargs) -> str:
-        args = json.loads(params)
-        sql_input = args['sql_input']
-        database = args.get('database', 'ubr')
-        
-        # 数据库连接配置
-        engine = create_engine(
-            f'mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/{database}?charset=utf8mb4',
-            connect_args={'connect_timeout': 10}, 
-            pool_size=10, 
-            max_overflow=20
-        )
+        logger.info(f"ExcSQLTool开始执行 - 参数: {params[:200]}...")
         
         try:
-            df = pd.read_sql(sql_input, engine)
-            md = df.head(10).to_markdown(index=False)
+            args = json.loads(params)
+            sql_input = args['sql_input']
+            database = args.get('database', 'ubr')
             
-            # 生成图表
-            save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
-            os.makedirs(save_dir, exist_ok=True)
-            filename = f'chart_{int(time.time()*1000)}.png'
-            save_path = os.path.join(save_dir, filename)
+            logger.info(f"解析SQL参数成功 - 数据库: {database}, SQL长度: {len(sql_input)}")
+            logger.debug(f"执行的SQL: {sql_input}")
             
-            # 调用图表生成逻辑
-            self._generate_chart(df, save_path)
+            # 数据库连接配置
+            engine = create_engine(
+                f'mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/{database}?charset=utf8mb4',
+                connect_args={'connect_timeout': 10}, 
+                pool_size=10, 
+                max_overflow=20
+            )
             
-            img_url = f'/static/images/{filename}'
-            img_md = f'![图表]({img_url})'
+            logger.info("数据库连接创建成功")
             
-            return f"{md}\n\n{img_md}"
-            
+            try:
+                logger.info("开始执行SQL查询")
+                df = pd.read_sql(sql_input, engine)
+                logger.info(f"SQL查询执行成功 - 返回行数: {len(df)}, 列数: {len(df.columns)}")
+                
+                md = df.head(10).to_markdown(index=False)
+                
+                # 生成图表
+                save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
+                os.makedirs(save_dir, exist_ok=True)
+                filename = f'chart_{int(time.time()*1000)}.png'
+                save_path = os.path.join(save_dir, filename)
+                
+                logger.info(f"准备生成图表 - 文件名: {filename}")
+                
+                # 调用图表生成逻辑
+                self._generate_chart(df, save_path)
+                logger.info(f"图表生成成功 - 路径: {save_path}")
+                
+                img_url = f'/static/images/{filename}'
+                img_md = f'![图表]({img_url})'
+                
+                logger.info(f"SQL工具执行完成 - 数据行数: {len(df)}, 列: {list(df.columns)}")
+                return f"{md}\n\n{img_md}"
+                
+            except Exception as e:
+                logger.error(f"SQL执行错误: {str(e)}")
+                return f"SQL执行出错: {str(e)}"
+            finally:
+                engine.dispose()
+                logger.info("数据库连接已关闭")
+                
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON参数解析失败: {str(e)}")
+            return f"参数解析错误: {str(e)}"
         except Exception as e:
-            return f"SQL执行出错: {str(e)}"
+            logger.error(f"ExcSQLTool执行异常: {str(e)}")
+            return f"工具执行错误: {str(e)}"
     
     def _generate_chart(self, df, save_path):
         """生成图表的具体实现"""

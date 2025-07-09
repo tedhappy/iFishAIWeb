@@ -13,6 +13,7 @@ import LoadingIcon from "../icons/three-dots.svg";
 import ReloadButtonIcon from "../icons/reload.svg";
 import React from "react";
 import { useDebouncedCallback } from "use-debounce";
+import { logger } from "../utils/logger";
 import { showImageModal, FullScreen } from "./ui-lib";
 import {
   ArtifactsShareButton,
@@ -38,7 +39,7 @@ export function Mermaid(props: { code: string }) {
         })
         .catch((e) => {
           setHasError(true);
-          console.error("[Mermaid] ", e.message);
+          logger.error("[Mermaid] ", e.message);
         });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

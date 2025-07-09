@@ -27,6 +27,7 @@ import mapValues from "lodash-es/mapValues";
 import isArray from "lodash-es/isArray";
 import isObject from "lodash-es/isObject";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils/logger";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -85,7 +86,7 @@ export class HunyuanApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl);
+    logger.log("[Proxy Endpoint] ", baseUrl);
     return baseUrl;
   }
 
@@ -121,7 +122,7 @@ export class HunyuanApi implements LLMApi {
       stream: options.config.stream,
     });
 
-    console.log("[Request] Tencent payload: ", requestPayload);
+    logger.log("[Request] Tencent payload: ", requestPayload);
 
     const shouldStream = !!options.config.stream;
     const controller = new AbortController();
@@ -152,7 +153,7 @@ export class HunyuanApi implements LLMApi {
         function animateResponseText() {
           if (finished || controller.signal.aborted) {
             responseText += remainText;
-            console.log("[Response Animation] finished");
+            logger.log("[Response Animation] finished");
             if (responseText?.length === 0) {
               options.onError?.(new Error("empty response from server"));
             }
@@ -188,7 +189,7 @@ export class HunyuanApi implements LLMApi {
           async onopen(res) {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
-            console.log(
+            logger.log(
               "[Tencent] request response content type: ",
               contentType,
             );
@@ -240,7 +241,7 @@ export class HunyuanApi implements LLMApi {
                 remainText += delta;
               }
             } catch (e) {
-              console.error("[Request] parse error", text, msg);
+              logger.error("[Request] parse error", text, msg);
             }
           },
           onclose() {
@@ -261,7 +262,7 @@ export class HunyuanApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.error("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

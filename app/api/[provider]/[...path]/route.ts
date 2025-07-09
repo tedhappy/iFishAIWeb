@@ -1,5 +1,6 @@
 import { ApiPath } from "@/app/constant";
 import { NextRequest } from "next/server";
+import { logger } from "../../../utils/logger";
 import { handle as azureHandler } from "../../azure";
 import { handle as googleHandler } from "../../google";
 import { handle as anthropicHandler } from "../../anthropic";
@@ -20,7 +21,7 @@ async function handle(
   { params }: { params: { provider: string; path: string[] } },
 ) {
   const apiPath = `/api/${params.provider}`;
-  console.log(`[${params.provider} Route] params `, params);
+  logger.log(`[${params.provider} Route] params `, params);
   switch (apiPath) {
     case ApiPath.Azure:
       return azureHandler(req, { params });

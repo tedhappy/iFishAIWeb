@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { useState, useRef, useEffect } from "react";
 
 import { useChatStore, createMessage, useAppConfig } from "@/app/store";
+import { logger } from "@/app/utils/logger";
 
 import { IconButton } from "@/app/components/button";
 
@@ -105,10 +106,10 @@ export function RealtimeChat({
         //   }
         //   // await clientRef.current.generateResponse();
         // } catch (error) {
-        //   console.error("Set message failed:", error);
+        //   logger.error("Set message failed:", error);
         // }
       } catch (error) {
-        console.error("Connection failed:", error);
+        logger.error("Connection failed:", error);
         setStatus("Connection failed");
       } finally {
         setIsConnecting(false);
@@ -125,7 +126,7 @@ export function RealtimeChat({
         clientRef.current = null;
         setIsConnected(false);
       } catch (error) {
-        console.error("Disconnect failed:", error);
+        logger.error("Disconnect failed:", error);
       }
     }
   };
@@ -143,7 +144,7 @@ export function RealtimeChat({
       }
     } catch (error) {
       if (clientRef.current) {
-        console.error("Response iteration error:", error);
+        logger.error("Response iteration error:", error);
       }
     }
   };
@@ -240,7 +241,7 @@ export function RealtimeChat({
         });
         setIsRecording(true);
       } catch (error) {
-        console.error("Failed to start recording:", error);
+        logger.error("Failed to start recording:", error);
       }
     } else if (audioHandlerRef.current) {
       try {
@@ -252,7 +253,7 @@ export function RealtimeChat({
         }
         setIsRecording(false);
       } catch (error) {
-        console.error("Failed to stop recording:", error);
+        logger.error("Failed to stop recording:", error);
       }
     }
   };
@@ -272,14 +273,14 @@ export function RealtimeChat({
 
     initAudioHandler().catch((error) => {
       setStatus(error);
-      console.error(error);
+      logger.error(error);
     });
 
     return () => {
       if (isRecording) {
         toggleRecording();
       }
-      audioHandlerRef.current?.close().catch(console.error);
+      audioHandlerRef.current?.close().catch(logger.error);
       disconnect();
     };
   }, []);
@@ -321,7 +322,7 @@ export function RealtimeChat({
     if (isRecording) {
       await toggleRecording();
     }
-    disconnect().catch(console.error);
+    disconnect().catch(logger.error);
   };
 
   return (

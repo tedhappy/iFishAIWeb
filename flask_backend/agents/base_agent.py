@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 import os
 import dashscope
 from qwen_agent.agents import Assistant
+from utils.logger import logger
 
 class BaseAgent(ABC):
     """Agent基类，定义所有Agent的通用接口"""
@@ -37,6 +38,8 @@ class BaseAgent(ABC):
     
     def chat(self, user_input: str, file_path: str = None) -> Dict[str, Any]:
         """处理用户输入并返回响应"""
+        logger.info(f"[{self.session_id}] 开始处理聊天请求 - 输入长度: {len(user_input)}, 文件: {file_path}")
+        
         try:
             # 构建消息
             if file_path:
@@ -44,16 +47,24 @@ class BaseAgent(ABC):
                     'role': 'user', 
                     'content': [{'text': user_input}, {'file': file_path}]
                 }
+                logger.info(f"[{self.session_id}] 构建带文件的消息")
             else:
                 message = {'role': 'user', 'content': user_input}
+                logger.info(f"[{self.session_id}] 构建文本消息")
             
             self.messages.append(message)
+            logger.info(f"[{self.session_id}] 消息已添加到历史，当前历史长度: {len(self.messages)}")
             
             # 调用qwen-agent
+            logger.info(f"[{self.session_id}] 开始调用qwen-agent")
             response = []
+            response_count = 0
             for resp in self.bot.run(self.messages):
                 response = resp
+                response_count += 1
+                logger.debug(f"[{self.session_id}] 收到qwen-agent响应 #{response_count}")
             
+            logger.info(f"[{self.session_id}] qwen-agent调用完成，响应数量: {len(response)}")
             self.messages.extend(response)
             
             # 提取最后的助手回复
@@ -63,14 +74,20 @@ class BaseAgent(ABC):
                     assistant_reply = msg.get('content', '')
                     break
             
-            return {
+            logger.info(f"[{self.session_id}] 提取助手回复完成 - 回复长度: {len(assistant_reply) if assistant_reply else 0}")
+            
+            result = {
                 'success': True,
                 'response': assistant_reply,
                 'session_id': self.session_id,
                 'message_count': len(self.messages)
             }
             
+            logger.info(f"[{self.session_id}] 聊天处理成功完成")
+            return result
+            
         except Exception as e:
+            logger.error(f"[{self.session_id}] 聊天处理失败: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),

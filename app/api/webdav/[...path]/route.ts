@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { STORAGE_KEY, internalAllowedWebDavEndpoints } from "../../../constant";
 import { getServerSideConfig } from "@/app/config/server";
+import { logger } from "@/app/utils/logger";
 
 const config = getServerSideConfig();
 
@@ -144,7 +145,7 @@ async function handle(
   try {
     fetchResult = await fetch(targetUrl, fetchOptions);
   } finally {
-    console.log(
+    logger.log(
       "[Any Proxy]",
       targetUrl,
       {

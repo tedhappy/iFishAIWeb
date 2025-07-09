@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSideConfig } from "../../config/server";
 import { ServiceProvider } from "../../constant";
+import { logger } from "../../utils/logger";
 
 /**
  * 获取默认配置的API端点
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
       defaultProvider: validProvider,
     });
   } catch (error) {
-    console.error("[Default Config API] Error:", error);
+    logger.error("[Default Config API] Error:", error);
     return NextResponse.json(
       {
         error: "Failed to get default config",

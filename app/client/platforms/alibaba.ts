@@ -28,6 +28,7 @@ import {
   isVisionModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
+import { logger } from "@/app/utils/logger";
 
 export interface OpenAIListModelResponse {
   object: string;
@@ -80,7 +81,7 @@ export class QwenApi implements LLMApi {
       baseUrl = "https://" + baseUrl;
     }
 
-    console.log("[Proxy Endpoint] ", baseUrl, path);
+    logger.log("[Proxy Endpoint] ", baseUrl, path);
 
     return [baseUrl, path].join("/");
   }
@@ -110,8 +111,8 @@ export class QwenApi implements LLMApi {
         visionModel
           ? await preProcessImageContentForAlibabaDashScope(v.content)
           : v.role === "assistant"
-          ? getMessageTextContentWithoutThinking(v)
-          : getMessageTextContent(v)
+            ? getMessageTextContentWithoutThinking(v)
+            : getMessageTextContent(v)
       ) as any;
 
       messages.push({ role: v.role, content });
@@ -170,7 +171,7 @@ export class QwenApi implements LLMApi {
           controller,
           // parseSSE
           (text: string, runTools: ChatMessageTool[]) => {
-            // console.log("parseSSE", text, runTools);
+            // logger.log("parseSSE", text, runTools);
             const json = JSON.parse(text);
             const choices = json.output.choices as Array<{
               message: {
@@ -259,7 +260,7 @@ export class QwenApi implements LLMApi {
         options.onFinish(message, res);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
+      logger.error("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }

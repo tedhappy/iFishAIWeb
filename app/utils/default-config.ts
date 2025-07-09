@@ -1,4 +1,5 @@
 import { ServiceProvider } from "../constant";
+import { logger } from "./logger";
 
 /**
  * 默认配置接口
@@ -45,7 +46,7 @@ export async function getDefaultConfig(): Promise<DefaultConfig> {
       defaultProvider: config.defaultProvider || ServiceProvider.Alibaba,
     };
   } catch (error) {
-    console.error("[Default Config] Failed to fetch default config:", error);
+    logger.error("[Default Config] Failed to fetch default config:", error);
     // 返回fallback配置
     return {
       defaultModel: "qwen-turbo-latest",

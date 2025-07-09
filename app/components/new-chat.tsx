@@ -6,12 +6,14 @@ import styles from "./new-chat.module.scss";
 import LeftIcon from "../icons/left.svg";
 
 import { useLocation, useNavigate } from "react-router-dom";
-import { Mask, useMaskStore } from "../store/mask";
+import { useMaskStore } from "../store/mask";
+import { logger } from "../utils/logger";
 import Locale from "../locales";
 import { useAppConfig, useChatStore } from "../store";
 import { MaskAvatar } from "./mask";
 import { useCommand } from "../command";
 import { BUILTIN_MASK_STORE } from "../masks";
+import { Mask } from "../store/mask";
 import clsx from "clsx";
 
 function MaskItem(props: { mask: Mask; onClick?: () => void }) {
@@ -70,7 +72,7 @@ export function NewChat() {
         const mask = maskStore.get(id) ?? BUILTIN_MASK_STORE.get(id);
         startChat(mask ?? undefined);
       } catch {
-        console.error("[New Chat] failed to create chat from mask id=", id);
+        logger.error("[New Chat] failed to create chat from mask id=", id);
       }
     },
   });

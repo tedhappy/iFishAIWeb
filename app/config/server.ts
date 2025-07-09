@@ -1,6 +1,7 @@
 import md5 from "spark-md5";
 import { DEFAULT_MODELS, DEFAULT_GA_ID } from "../constant";
 import { isGPT4Model } from "../utils/model";
+import { logger } from "@/app/utils/logger";
 
 declare global {
   namespace NodeJS {
@@ -114,7 +115,7 @@ function getApiKey(keys?: string) {
   const randomIndex = Math.floor(Math.random() * apiKeys.length);
   const apiKey = apiKeys[randomIndex];
   if (apiKey) {
-    console.log(
+    logger.log(
       `[Server Config] using ${randomIndex + 1} of ${
         apiKeys.length
       } api key - ${apiKey}`,

@@ -244,19 +244,19 @@ export function Home() {
   }, []);
 
   // useEffect(() => {
-  //   console.log("[Config] got config from build time", getClientConfig());
+  //   logger.log("[Config] got config from build time", getClientConfig());
   //   useAccessStore.getState().fetch();
 
   //   const initMcp = async () => {
   //     try {
   //       const enabled = await isMcpEnabled();
   //       if (enabled) {
-  //         console.log("[MCP] initializing...");
+  //         logger.log("[MCP] initializing...");
   //         await initializeMcpSystem();
-  //         console.log("[MCP] initialized");
+  //         logger.log("[MCP] initialized");
   //       }
   //     } catch (err) {
-  //       console.error("[MCP] failed to initialize:", err);
+  //       logger.error("[MCP] failed to initialize:", err);
   //     }
   //   };
   //   initMcp();

@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { CN_MASKS } from "./cn";
+import { logger } from "@/app/utils/logger";
 
 import { type BuiltinMask } from "./typing";
 
@@ -16,7 +17,7 @@ fs.writeFile(
   JSON.stringify(BUILTIN_MASKS, null, 4),
   function (error) {
     if (error) {
-      console.error("[Build] failed to build masks", error);
+      logger.error("[Build] failed to build masks", error);
     }
   },
 );

@@ -28,6 +28,7 @@ import { Selector, showConfirm, Modal } from "./ui-lib";
 import clsx from "clsx";
 import { isMcpEnabled } from "../mcp/actions";
 import { useAccessStore } from "../store/access";
+import { logger } from "../utils/logger";
 
 const DISCOVERY = [
   { name: Locale.Plugin.Name, path: Path.Plugins },
@@ -340,7 +341,7 @@ export function SideBar(props: { className?: string }) {
     const checkMcpStatus = async () => {
       const enabled = await isMcpEnabled();
       setMcpEnabled(enabled);
-      console.log("[SideBar] MCP enabled:", enabled);
+      logger.info("[SideBar] MCP enabled:", enabled);
     };
     checkMcpStatus();
   }, []);

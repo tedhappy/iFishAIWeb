@@ -4,8 +4,10 @@ import os
 import logging
 import threading
 import time
+from datetime import datetime
 from agents.base_agent import BaseAgent
 from agents.ticket_agent import TicketAgent
+from .logger import logger
 # 导入其他Agent类...
 
 class SessionManager:
@@ -23,7 +25,7 @@ class SessionManager:
             'chatbi': None,  # 待实现
             'default': TicketAgent  # 默认使用门票助手
         }
-        self.logger = logging.getLogger(__name__)
+        # Logger已通过导入的logger模块统一管理
         self._cleanup_thread = None
         self._stop_cleanup = False
         self._load_sessions()
@@ -40,7 +42,7 @@ class SessionManager:
                 self.session_timestamps[session_id] = time.time()
                 # 立即保存更新的时间戳
                 self._save_sessions()
-                self.logger.info(f"会话已存在，返回现有会话: {session_id}")
+                logger.info(f"会话已存在，返回现有会话: {session_id}")
                 return session_id
             
             # 检查Agent类型是否支持
@@ -58,7 +60,7 @@ class SessionManager:
             
             # 保存会话到文件
             self._save_sessions()
-            self.logger.info(f"创建新会话: {session_id}")
+            logger.info(f"创建新会话: {session_id}")
             
             return session_id
     
@@ -81,9 +83,9 @@ class SessionManager:
                     del self.session_timestamps[session_id]
                 # 保存会话到文件
                 self._save_sessions()
-                self.logger.info(f"移除会话: {session_id}")
+                logger.info(f"移除会话: {session_id}")
             else:
-                self.logger.warning(f"尝试移除不存在的会话: {session_id}")
+                logger.warning(f"尝试移除不存在的会话: {session_id}")
     
     def get_user_sessions(self, user_id: str) -> Dict[str, BaseAgent]:
         """获取用户的所有会话（线程安全）"""
@@ -109,7 +111,7 @@ class SessionManager:
             
             if sessions_to_remove:
                 self._save_sessions()
-                self.logger.info(f"清空用户 {user_id} 的 {len(sessions_to_remove)} 个会话")
+                logger.info(f"清空用户 {user_id} 的 {len(sessions_to_remove)} 个会话")
     
     def get_session_count(self) -> int:
         """获取当前会话总数（线程安全）"""
@@ -146,13 +148,13 @@ class SessionManager:
                                 self.sessions[session_id] = agent
                                 # 初始化时间戳（使用保存的时间戳或当前时间）
                                 self.session_timestamps[session_id] = data.get('timestamp', current_time)
-                                self.logger.info(f"已恢复会话: {session_id}")
+                                logger.info(f"已恢复会话: {session_id}")
                         except Exception as e:
-                            self.logger.error(f"恢复会话失败 {session_id}: {str(e)}")
+                            logger.error(f"恢复会话失败 {session_id}: {str(e)}")
                             
-                    self.logger.info(f"已加载 {len(self.sessions)} 个会话")
+                    logger.info(f"已加载 {len(self.sessions)} 个会话")
             except Exception as e:
-                self.logger.error(f"加载会话文件失败: {str(e)}")
+                logger.error(f"加载会话文件失败: {str(e)}")
     
     def _save_sessions(self):
         """保存会话信息到文件（线程安全）"""
@@ -184,18 +186,18 @@ class SessionManager:
                         try:
                             session_info['history'] = agent.get_history()
                         except Exception as e:
-                            self.logger.warning(f"获取会话历史失败 {session_id}: {str(e)}")
+                            logger.warning(f"获取会话历史失败 {session_id}: {str(e)}")
                     
                     session_data[session_id] = session_info
                 except Exception as e:
-                    self.logger.error(f"序列化会话失败 {session_id}: {str(e)}")
+                    logger.error(f"序列化会话失败 {session_id}: {str(e)}")
             
             with open(self.session_file, 'w', encoding='utf-8') as f:
                 json.dump(session_data, f, ensure_ascii=False, indent=2)
                 
-            self.logger.info(f"已保存 {len(session_data)} 个会话")
+            logger.info(f"已保存 {len(session_data)} 个会话")
         except Exception as e:
-            self.logger.error(f"保存会话文件失败: {str(e)}")
+            logger.error(f"保存会话文件失败: {str(e)}")
     
     def _start_cleanup_thread(self):
         """启动会话清理线程"""
@@ -210,12 +212,12 @@ class SessionManager:
                             break
                         time.sleep(1)
                 except Exception as e:
-                    self.logger.error(f"会话清理线程异常: {str(e)}")
+                    logger.error(f"会话清理线程异常: {str(e)}")
                     time.sleep(60)  # 出错后等待1分钟再重试
         
         self._cleanup_thread = threading.Thread(target=cleanup_expired_sessions, daemon=True)
         self._cleanup_thread.start()
-        self.logger.info("会话清理线程已启动")
+        logger.info("会话清理线程已启动")
     
     def _cleanup_expired_sessions(self):
         """清理过期的会话"""
@@ -236,7 +238,7 @@ class SessionManager:
                 
                 # 保存更新后的会话
                 self._save_sessions()
-                self.logger.info(f"清理了 {len(expired_sessions)} 个过期会话")
+                logger.info(f"清理了 {len(expired_sessions)} 个过期会话")
     
     def touch_session(self, session_id: str):
         """更新会话活跃时间"""
@@ -279,6 +281,11 @@ class SessionManager:
                     sessions_info.append(info)
             return sessions_info
     
+    def get_session_count(self) -> int:
+        """获取当前活跃会话数量"""
+        with self._lock:
+            return len(self.sessions)
+    
     def cleanup_user_expired_sessions(self, user_id: str) -> int:
         """清理指定用户的过期会话"""
         with self._lock:
@@ -299,7 +306,7 @@ class SessionManager:
             
             if expired_sessions:
                 self._save_sessions()
-                self.logger.info(f"清理用户 {user_id} 的 {len(expired_sessions)} 个过期会话")
+                logger.info(f"清理用户 {user_id} 的 {len(expired_sessions)} 个过期会话")
             
             return len(expired_sessions)
     
@@ -308,7 +315,7 @@ class SessionManager:
         self._stop_cleanup = True
         if self._cleanup_thread and self._cleanup_thread.is_alive():
             self._cleanup_thread.join(timeout=5)
-            self.logger.info("会话清理线程已停止")
+            logger.info("会话清理线程已停止")
     
     def chat_with_agent(self, session_id: str, message: str) -> str:
         """与Agent对话（线程安全）"""
@@ -325,10 +332,10 @@ class SessionManager:
                 response = agent.chat(message)
                 # 对话成功后立即保存会话状态
                 self._save_sessions()
-                self.logger.info(f"会话 {session_id} 对话成功")
+                logger.info(f"会话 {session_id} 对话成功")
                 return response
             except Exception as e:
-                self.logger.error(f"会话 {session_id} 对话失败: {str(e)}")
+                logger.error(f"会话 {session_id} 对话失败: {str(e)}")
                 # 即使对话失败也保存时间戳更新
                 self._save_sessions()
                 raise

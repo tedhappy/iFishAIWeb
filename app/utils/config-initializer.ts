@@ -1,4 +1,5 @@
 import { useAppConfig } from "../store/config";
+import { logger } from "./logger";
 
 /**
  * 配置初始化器
@@ -17,7 +18,7 @@ export class ConfigInitializer {
     }
 
     try {
-      console.log(
+      logger.log(
         "[Config Initializer] Initializing default config from environment variables...",
       );
 
@@ -28,11 +29,11 @@ export class ConfigInitializer {
       await configStore.updateDefaultConfig();
 
       this.initialized = true;
-      console.log(
+      logger.log(
         "[Config Initializer] Default config initialized successfully",
       );
     } catch (error) {
-      console.error(
+      logger.error(
         "[Config Initializer] Failed to initialize default config:",
         error,
       );

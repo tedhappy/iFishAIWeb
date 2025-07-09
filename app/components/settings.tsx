@@ -78,6 +78,7 @@ import {
 } from "../constant";
 import { Prompt, SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
+import { logger } from "../utils/logger";
 import { InputRange } from "./input-range";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarPicker } from "./emoji";
@@ -543,7 +544,7 @@ function SyncItems() {
                     showToast(Locale.Settings.Sync.Success);
                   } catch (e) {
                     showToast(Locale.Settings.Sync.Fail);
-                    console.error("[Sync]", e);
+                    logger.error("[Sync]", e);
                   }
                 }}
               />
@@ -602,8 +603,8 @@ export function Settings() {
       setCheckingUpdate(false);
     });
 
-    console.log("[Update] local version ", updateStore.version);
-    console.log("[Update] remote version ", updateStore.remoteVersion);
+    logger.log("[Update] local version ", updateStore.version);
+    logger.log("[Update] remote version ", updateStore.remoteVersion);
   }
 
   const accessStore = useAccessStore();

@@ -4,6 +4,7 @@ import {
   ModelProvider,
   ServiceProvider,
 } from "../constant";
+import { logger } from "@/app/utils/logger";
 import {
   ChatMessageTool,
   ChatMessage,
@@ -200,7 +201,7 @@ export class ClientApi {
     // 敬告二开开发者们，为了开源大模型的发展，请不要修改上述消息，此消息用于后续数据清洗使用
     // Please do not modify this message
 
-    console.log("[Share]", messages, msgs);
+    logger.log("[Share]", messages, msgs);
     const clientConfig = getClientConfig();
     const proxyUrl = "/sharegpt";
     const rawUrl = "https://sharegpt.com/api/conversations";
@@ -217,7 +218,7 @@ export class ClientApi {
     });
 
     const resJson = await res.json();
-    console.log("[Share]", resJson);
+    logger.log("[Share]", resJson);
     if (resJson.id) {
       return `https://shareg.pt/${resJson.id}`;
     }
@@ -388,7 +389,7 @@ export function getClientApi(provider: ServiceProvider): ClientApi {
     // case ServiceProvider.OpenAI: // OpenAI removed
     case ServiceProvider.Azure:
       // OpenAI和Azure被禁用，重定向到阿里巴巴
-      console.warn(
+      logger.warn(
         `[getClientApi] ${provider} is disabled, redirecting to Alibaba`,
       );
       return new ClientApi(ModelProvider.Qwen);

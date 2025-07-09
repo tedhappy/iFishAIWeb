@@ -9,6 +9,7 @@ import { prettyObject } from "@/app/utils/format";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/api/auth";
 import { isModelNotavailableInServer } from "@/app/utils/model";
+import { logger } from "@/app/utils/logger";
 
 const serverConfig = getServerSideConfig();
 
@@ -16,7 +17,7 @@ export async function handle(
   req: NextRequest,
   { params }: { params: { path: string[] } },
 ) {
-  console.log("[SiliconFlow Route] params ", params);
+  logger.log("[SiliconFlow Route] params ", params);
 
   if (req.method === "OPTIONS") {
     return NextResponse.json({ body: "OK" }, { status: 200 });
@@ -33,7 +34,7 @@ export async function handle(
     const response = await request(req);
     return response;
   } catch (e) {
-    console.error("[SiliconFlow] ", e);
+    logger.error("[SiliconFlow] ", e);
     return NextResponse.json(prettyObject(e));
   }
 }
@@ -54,8 +55,8 @@ async function request(req: NextRequest) {
     baseUrl = baseUrl.slice(0, -1);
   }
 
-  console.log("[Proxy] ", path);
-  console.log("[Base Url]", baseUrl);
+  logger.log("[Proxy] ", path);
+  logger.log("[Base Url]", baseUrl);
 
   const timeoutId = setTimeout(
     () => {
@@ -105,7 +106,7 @@ async function request(req: NextRequest) {
         );
       }
     } catch (e) {
-      console.error(`[SiliconFlow] filter`, e);
+      logger.error(`[SiliconFlow] filter`, e);
     }
   }
   try {

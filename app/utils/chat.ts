@@ -11,6 +11,7 @@ import {
 } from "@fortaine/fetch-event-source";
 import { prettyObject } from "./format";
 import { fetch as tauriFetch } from "./stream";
+import { logger } from "./logger";
 
 export function compressImage(file: Blob, maxSize: number): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -84,7 +85,7 @@ export async function preProcessImageContentBase(
         const url = await cacheImageToBase64Image(part?.image_url?.url);
         result.push(await transformImageUrl(url));
       } catch (error) {
-        console.error("Error processing image URL:", error);
+        logger.error("Error processing image URL:", error);
       }
     } else {
       result.push({ ...part });
@@ -156,7 +157,7 @@ export function uploadImage(file: Blob): Promise<string> {
   })
     .then((res) => res.json())
     .then((res) => {
-      // console.log("res", res);
+      // logger.log("res", res);
       if (res?.code == 0 && res?.data) {
         return res?.data;
       }
@@ -198,7 +199,7 @@ export function stream(
   function animateResponseText() {
     if (finished || controller.signal.aborted) {
       responseText += remainText;
-      console.log("[Response Animation] finished");
+      logger.log("[Response Animation] finished");
       if (responseText?.length === 0) {
         options.onError?.(new Error("empty response from server"));
       }
@@ -279,7 +280,7 @@ export function stream(
           processToolMessage(requestPayload, toolCallMessage, toolCallResult);
           setTimeout(() => {
             // call again
-            console.debug("[ChatAPI] restart");
+            logger.debug("[ChatAPI] restart");
             running = false;
             chatApi(chatPath, headers, requestPayload, tools); // call fetchEventSource
           }, 60);
@@ -289,7 +290,7 @@ export function stream(
       if (running) {
         return;
       }
-      console.debug("[ChatAPI] end");
+      logger.debug("[ChatAPI] end");
       finished = true;
       options.onFinish(responseText + remainText, responseRes); // 将res传递给onFinish
     }
@@ -322,7 +323,7 @@ export function stream(
       async onopen(res) {
         clearTimeout(requestTimeoutId);
         const contentType = res.headers.get("content-type");
-        console.log("[Request] response content type: ", contentType);
+        logger.log("[Request] response content type: ", contentType);
         responseRes = res;
 
         if (contentType?.startsWith("text/plain")) {
@@ -372,7 +373,7 @@ export function stream(
             remainText += chunk;
           }
         } catch (e) {
-          console.error("[Request] parse error", text, msg, e);
+          logger.error("[Request] parse error", text, msg, e);
         }
       },
       onclose() {
@@ -385,7 +386,7 @@ export function stream(
       openWhenHidden: true,
     });
   }
-  console.debug("[ChatAPI] start");
+  logger.debug("[ChatAPI] start");
   chatApi(chatPath, headers, requestPayload, tools); // call fetchEventSource
 }
 
@@ -424,7 +425,7 @@ export function streamWithThink(
   function animateResponseText() {
     if (finished || controller.signal.aborted) {
       responseText += remainText;
-      console.log("[Response Animation] finished");
+      logger.log("[Response Animation] finished");
       if (responseText?.length === 0) {
         options.onError?.(new Error("empty response from server"));
       }
@@ -505,7 +506,7 @@ export function streamWithThink(
           processToolMessage(requestPayload, toolCallMessage, toolCallResult);
           setTimeout(() => {
             // call again
-            console.debug("[ChatAPI] restart");
+            logger.debug("[ChatAPI] restart");
             running = false;
             chatApi(chatPath, headers, requestPayload, tools); // call fetchEventSource
           }, 60);
@@ -515,7 +516,7 @@ export function streamWithThink(
       if (running) {
         return;
       }
-      console.debug("[ChatAPI] end");
+      logger.debug("[ChatAPI] end");
       finished = true;
       options.onFinish(responseText + remainText, responseRes);
     }
@@ -548,7 +549,7 @@ export function streamWithThink(
       async onopen(res) {
         clearTimeout(requestTimeoutId);
         const contentType = res.headers.get("content-type");
-        console.log("[Request] response content type: ", contentType);
+        logger.log("[Request] response content type: ", contentType);
         responseRes = res;
 
         if (contentType?.startsWith("text/plain")) {
@@ -648,7 +649,7 @@ export function streamWithThink(
             }
           }
         } catch (e) {
-          console.error("[Request] parse error", text, msg, e);
+          logger.error("[Request] parse error", text, msg, e);
           // Don't throw error for parse failures, just log them
         }
       },
@@ -662,6 +663,6 @@ export function streamWithThink(
       openWhenHidden: true,
     });
   }
-  console.debug("[ChatAPI] start");
+  logger.debug("[ChatAPI] start");
   chatApi(chatPath, headers, requestPayload, tools); // call fetchEventSource
 }

@@ -1,5 +1,6 @@
 import tauriConfig from "../../src-tauri/tauri.conf.json";
 import { DEFAULT_INPUT_TEMPLATE } from "../constant";
+import { logger } from "@/app/utils/logger";
 
 export const getBuildConfig = () => {
   if (typeof process === "undefined") {
@@ -26,7 +27,7 @@ export const getBuildConfig = () => {
 
       return { commitDate, commitHash };
     } catch (e) {
-      console.error("[Build Config] No git or not from git repo.");
+      logger.error("[Build Config] No git or not from git repo.");
       return {
         commitDate: "unknown",
         commitHash: "unknown",
