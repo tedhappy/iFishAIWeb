@@ -13,15 +13,17 @@ def init_agent():
     user_id = data.get('user_id', str(uuid.uuid4()))  # 如果没有用户ID，生成一个
     mask_id = data.get('mask_id')
     agent_type = data.get('agent_type', 'default')
+    session_uuid = data.get('session_uuid')  # 新增session_uuid参数
+    force_new = data.get('force_new', False)  # 新增force_new参数
     
-    logger.info(f"初始化Agent会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}")
+    logger.info(f"初始化Agent会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_uuid: {session_uuid}, force_new: {force_new}")
     
     if not mask_id:
         logger.error("缺少mask_id参数")
         return jsonify({'error': '缺少mask_id参数'}), 400
     
     try:
-        session_id = session_manager.create_session(user_id, mask_id, agent_type)
+        session_id = session_manager.create_session(user_id, mask_id, agent_type, session_uuid, force_new)
         logger.info(f"会话创建成功 - session_id: {session_id}")
         return jsonify({
             'success': True,
@@ -221,8 +223,9 @@ def recover_session():
     mask_id = data.get('mask_id')
     agent_type = data.get('agent_type', 'default')
     session_id = data.get('session_id')  # 可选，如果提供则尝试恢复特定会话
+    session_uuid = data.get('session_uuid')  # 新增：会话UUID参数
     
-    logger.info(f"尝试恢复会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_id: {session_id}")
+    logger.info(f"尝试恢复会话 - user_id: {user_id}, mask_id: {mask_id}, agent_type: {agent_type}, session_id: {session_id}, session_uuid: {session_uuid}")
     
     if not user_id or not mask_id:
         return jsonify({'error': '缺少必要参数 user_id 或 mask_id'}), 400
@@ -241,7 +244,8 @@ def recover_session():
                 })
         
         # 尝试创建新会话（如果持久化文件中有数据，会自动恢复）
-        new_session_id = session_manager.create_session(user_id, mask_id, agent_type)
+        # 传递session_uuid参数以支持会话隔离
+        new_session_id = session_manager.create_session(user_id, mask_id, agent_type, session_uuid=session_uuid)
         
         # 检查是否是恢复的会话还是新创建的会话
         is_recovered = session_id and new_session_id == session_id

@@ -31,13 +31,24 @@ class SessionManager:
         self._load_sessions()
         self._start_cleanup_thread()
     
-    def create_session(self, user_id: str, mask_id: str, agent_type: str = 'default') -> str:
+    def create_session(self, user_id: str, mask_id: str, agent_type: str = 'default', session_uuid: str = None, force_new: bool = False) -> str:
         """创建新的Agent会话（线程安全）"""
         with self._lock:
-            session_id = f"{user_id}_{mask_id}_{agent_type}"
+            # 如果提供了session_uuid，使用它来生成唯一的会话ID
+            if session_uuid:
+                session_id = f"{user_id}_{mask_id}_{agent_type}_{session_uuid}"
+            else:
+                # 兼容旧的会话ID格式
+                session_id = f"{user_id}_{mask_id}_{agent_type}"
             
-            # 如果会话已存在，直接返回
-            if session_id in self.sessions:
+            # 如果force_new为True，强制创建新会话
+            if force_new and session_id in self.sessions:
+                # 为强制新建的会话添加时间戳后缀
+                timestamp = str(int(time.time() * 1000))  # 毫秒级时间戳
+                session_id = f"{session_id}_{timestamp}"
+            
+            # 如果会话已存在且不强制创建新会话，直接返回
+            if session_id in self.sessions and not force_new:
                 # 更新活跃时间
                 self.session_timestamps[session_id] = time.time()
                 # 立即保存更新的时间戳

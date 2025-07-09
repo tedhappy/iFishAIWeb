@@ -21,6 +21,7 @@ export type Mask = {
   enableArtifacts?: boolean;
   enableCodeFold?: boolean;
   agentType?: string;
+  sessionUuid?: string;
 };
 
 export const DEFAULT_MASK_STATE = {

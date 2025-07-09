@@ -241,6 +241,21 @@ export const useChatStore = createPersistStore(
     }
 
     const methods = {
+      getPersistentUserId() {
+        // 从localStorage获取或生成持久化用户ID
+        const PERSISTENT_USER_ID_KEY = "persistent_user_id";
+        let userId = localStorage.getItem(PERSISTENT_USER_ID_KEY);
+
+        if (!userId) {
+          // 生成新的用户ID
+          userId = "user_" + nanoid();
+          localStorage.setItem(PERSISTENT_USER_ID_KEY, userId);
+          logger.info("Generated new persistent user ID:", userId);
+        }
+
+        return userId;
+      },
+
       forkSession() {
         // 获取当前会话
         const currentSession = get().currentSession();
@@ -613,8 +628,8 @@ export const useChatStore = createPersistStore(
         isRetry: boolean = false,
       ): Promise<void> {
         const session = get().currentSession();
-        // 使用会话ID作为用户ID的一部分，确保一致性
-        const userId = "user_" + session.id;
+        // 生成或获取持久化用户ID
+        const userId = get().getPersistentUserId();
 
         // Create user message (only if not a retry)
         let userMessage: ChatMessage;
@@ -745,6 +760,7 @@ export const useChatStore = createPersistStore(
                       mask_id: maskId || "default",
                       agent_type: agentType || "ticket",
                       session_id: (session as any).agentSessionId,
+                      session_uuid: session.mask.sessionUuid,
                     }),
                   },
                 );
@@ -770,6 +786,9 @@ export const useChatStore = createPersistStore(
 
             // 如果恢复失败，创建新会话
             if (needsInit) {
+              // 获取sessionUuid（如果存在）
+              const sessionUuid = session.mask.sessionUuid;
+
               initResponse = await fetch(`${apiBaseUrl}/flask/agent/init`, {
                 method: "POST",
                 headers: {
@@ -779,6 +798,8 @@ export const useChatStore = createPersistStore(
                   user_id: userId,
                   mask_id: maskId || "default",
                   agent_type: agentType || "ticket",
+                  session_uuid: sessionUuid, // 传递sessionUuid
+                  force_new: !!sessionUuid, // 如果有sessionUuid，强制创建新会话
                 }),
               });
 

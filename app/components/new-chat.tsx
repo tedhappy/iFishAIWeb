@@ -15,6 +15,7 @@ import { useCommand } from "../command";
 import { BUILTIN_MASK_STORE } from "../masks";
 import { Mask } from "../store/mask";
 import clsx from "clsx";
+import { nanoid } from "nanoid";
 
 function MaskItem(props: { mask: Mask; onClick?: () => void }) {
   return (
@@ -51,12 +52,14 @@ export function NewChat() {
 
   const startChat = (mask?: Mask) => {
     setTimeout(() => {
-      // 为mask设置agentType
+      // 为mask设置agentType和唯一的sessionUuid
       const agentType = "ticket"; // 默认使用门票助手
+      const sessionUuid = nanoid(); // 为每次点击生成唯一标识符
       const updatedMask = mask
         ? {
             ...mask,
             agentType: agentType,
+            sessionUuid: sessionUuid, // 添加唯一会话标识符
           }
         : undefined;
 
