@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 from agents.base_agent import BaseAgent
 from agents.ticket_agent import TicketAgent
+from agents.general_agent import GeneralAgent
 from .logger import logger
 # 导入其他Agent类...
 
@@ -21,9 +22,10 @@ class SessionManager:
         self._lock = threading.RLock()  # 可重入锁，保证线程安全
         self.agent_types = {
             'ticket': TicketAgent,
+            'general': GeneralAgent,  # 通用助手
             'image': None,  # 待实现
             'chatbi': None,  # 待实现
-            'default': TicketAgent  # 默认使用门票助手
+            'default': GeneralAgent  # 默认使用通用助手
         }
         # Logger已通过导入的logger模块统一管理
         self._cleanup_thread = None

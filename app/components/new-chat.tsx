@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
-import { Path } from "../constant";
+import { Path, ServiceProvider } from "../constant";
 import { IconButton } from "./button";
 import styles from "./new-chat.module.scss";
 
 import LeftIcon from "../icons/left.svg";
+import LightningIcon from "../icons/lightning.svg";
 
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMaskStore } from "../store/mask";
@@ -52,8 +53,8 @@ export function NewChat() {
 
   const startChat = (mask?: Mask) => {
     setTimeout(() => {
-      // 为mask设置agentType和唯一的sessionUuid
-      const agentType = "ticket"; // 默认使用门票助手
+      // 使用mask自身的agentType，如果没有则使用默认值
+      const agentType = mask?.agentType || "general"; // 使用mask的agentType或默认通用助手
       const sessionUuid = nanoid(); // 为每次点击生成唯一标识符
       const updatedMask = mask
         ? {
@@ -64,6 +65,47 @@ export function NewChat() {
         : undefined;
 
       chatStore.newSession(updatedMask);
+      // 跳转到对话页面
+      navigate(Path.Chat);
+    }, 10);
+  };
+
+  const startGeneralChat = () => {
+    setTimeout(() => {
+      // 创建通用助手的mask配置
+      const generalMask: Mask = {
+        id: "general-assistant",
+        name: "小鱼AI",
+        avatar: "🤖",
+        context: [],
+        syncGlobalConfig: false,
+        modelConfig: {
+          model: "qwen-turbo-latest",
+          temperature: 0.7,
+          top_p: 1,
+          max_tokens: 2000,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          sendMemory: true,
+          historyMessageCount: 4,
+          compressMessageLengthThreshold: 1000,
+          enableInjectSystemPrompts: true,
+          template: "",
+          providerName: ServiceProvider.Alibaba,
+          compressModel: "",
+          compressProviderName: "",
+          size: "1024x1024",
+          quality: "standard",
+          style: "vivid",
+        },
+        lang: "cn",
+        builtin: true,
+        createdAt: Date.now(),
+        agentType: "general", // 使用通用助手
+        sessionUuid: nanoid(), // 生成唯一会话标识符
+      };
+
+      chatStore.newSession(generalMask);
       // 跳转到对话页面
       navigate(Path.Chat);
     }, 10);
@@ -129,27 +171,15 @@ export function NewChat() {
       <div className={styles["title"]}>{Locale.NewChat.Title}</div>
       <div className={styles["sub-title"]}>{Locale.NewChat.SubTitle}</div>
 
-      {/* 隐藏操作按钮区域 */}
-      {/*
       <div className={styles["actions"]}>
         <IconButton
-          text={Locale.NewChat.More}
-          onClick={() => navigate(Path.Masks)}
-          icon={<EyeIcon />}
-          bordered
-          shadow
-        />
-
-        <IconButton
-          text={Locale.NewChat.Skip}
-          onClick={() => startChat()}
           icon={<LightningIcon />}
+          text="直接开始"
+          onClick={() => startGeneralChat()}
           type="primary"
           shadow
-          className={styles["skip"]}
         />
       </div>
-      */}
 
       <div className={styles["masks"]} ref={maskRef}>
         {masks.map((mask, index) => (

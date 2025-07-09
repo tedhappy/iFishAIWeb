@@ -49,16 +49,13 @@
   }
 
   .actions {
-    margin-top: 5vh;
+    margin-top: 2vh;
     margin-bottom: 2vh;
     animation: slide-in ease 0.45s;
     display: flex;
     justify-content: center;
-    font-size: 12px;
-
-    .skip {
-      margin-left: 10px;
-    }
+    gap: 10px;
+    font-size: 14px;
   }
 
   .masks {
