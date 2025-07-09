@@ -74,3 +74,4 @@ wheels/
 *.egg
 PYTHON_ARGCOMPLETE_OK
 sessions.json
+flask_backend/static/images/

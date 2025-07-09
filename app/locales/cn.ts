@@ -60,7 +60,7 @@ const cn = {
       del: "删除聊天",
     },
     InputActions: {
-      Stop: "停止响应",
+      Stop: "停止输出",
       ToBottom: "滚到最新",
       Theme: {
         auto: "自动主题",

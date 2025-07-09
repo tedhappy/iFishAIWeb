@@ -732,17 +732,9 @@ export const useChatStore = createPersistStore(
             `[聊天响应] Agent回复: "${responseData.response || "Agent暂无回复"}", 会话ID: ${sessionId}`,
           );
 
-          // Update bot message with response
-          botMessage.streaming = false;
-          botMessage.content = responseData.response || "Agent暂无回复";
-          botMessage.date = new Date().toLocaleString();
-          botMessage.isError = false;
-
-          get().updateTargetSession(session, (session) => {
-            session.messages = session.messages.concat();
-          });
-
-          get().onNewMessage(botMessage, session);
+          // 实现打字机效果的流式显示
+          const fullResponse = responseData.response || "Agent暂无回复";
+          await get().simulateTypingEffect(botMessage, fullResponse, session);
         } catch (error) {
           // 打印错误信息
           logger.error(
@@ -799,6 +791,111 @@ export const useChatStore = createPersistStore(
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();
           });
+        }
+      },
+
+      // 模拟打字机效果的流式显示
+      async simulateTypingEffect(
+        botMessage: ChatMessage,
+        fullResponse: string,
+        session: ChatSession,
+      ): Promise<void> {
+        const { ChatControllerPool } = await import("../client/controller");
+        const { createTypingEffect } = await import("../utils/typing-effect");
+
+        // 创建AbortController来支持停止功能
+        const controller = new AbortController();
+        const messageId = botMessage.id || "";
+
+        // 将controller添加到池中
+        ChatControllerPool.addController(session.id, messageId, controller);
+
+        // 设置初始状态
+        botMessage.streaming = true;
+        botMessage.content = "";
+        botMessage.isError = false;
+
+        // 更新会话以显示空的机器人消息
+        get().updateTargetSession(session, (session) => {
+          session.messages = session.messages.concat();
+        });
+
+        try {
+          // 创建打字机效果实例
+          const typingEffect = createTypingEffect({
+            baseSpeed: 30,
+            adaptiveSpeed: true,
+            maxLength: 50000,
+            maxRetries: 3,
+            enableMemoryMonitor: true,
+          });
+
+          // 开始打字机效果
+          await typingEffect.start(fullResponse, {
+            onUpdate: (content: string) => {
+              // 更新消息内容
+              botMessage.content = content;
+
+              // 更新会话
+              get().updateTargetSession(session, (session) => {
+                session.messages = session.messages.concat();
+              });
+            },
+            onComplete: (content: string) => {
+              // 完成显示，设置最终状态
+              botMessage.streaming = false;
+              botMessage.content = content;
+              botMessage.date = new Date().toLocaleString();
+              botMessage.isError = false;
+
+              get().updateTargetSession(session, (session) => {
+                session.messages = session.messages.concat();
+              });
+
+              get().onNewMessage(botMessage, session);
+            },
+            onError: (error: Error) => {
+              console.error("打字机效果执行错误:", error);
+
+              // 显示完整内容并标记错误
+              botMessage.streaming = false;
+              botMessage.content = fullResponse;
+              botMessage.date = new Date().toLocaleString();
+              botMessage.isError = true;
+
+              get().updateTargetSession(session, (session) => {
+                session.messages = session.messages.concat();
+              });
+
+              get().onNewMessage(botMessage, session);
+            },
+            shouldAbort: () => {
+              // 检查是否被中止或用户切换了会话
+              if (controller.signal.aborted) {
+                return true;
+              }
+
+              const currentSession = get().currentSession();
+              return currentSession.id !== session.id;
+            },
+          });
+        } catch (error) {
+          console.error("打字机效果初始化错误:", error);
+
+          // 直接显示完整内容
+          botMessage.streaming = false;
+          botMessage.content = fullResponse;
+          botMessage.date = new Date().toLocaleString();
+          botMessage.isError = true;
+
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
+
+          get().onNewMessage(botMessage, session);
+        } finally {
+          // 清理controller
+          ChatControllerPool.remove(session.id, messageId);
         }
       },
 
