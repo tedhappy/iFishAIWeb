@@ -341,6 +341,34 @@ export const useChatStore = createPersistStore(
 
         if (!deletedSession) return;
 
+        // 如果是Agent会话，先调用后端删除API
+        const agentSessionId = (deletedSession as any).agentSessionId;
+        if (agentSessionId) {
+          // 获取后端 API 基础 URL
+          const apiBaseUrl =
+            process.env.NEXT_PUBLIC_API_BASE_URL || "https://www.ifish.me";
+
+          // 异步调用后端删除API，不阻塞前端操作
+          fetch(`${apiBaseUrl}/flask/agent/remove/${agentSessionId}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                logger.info(`成功删除后端Agent会话: ${agentSessionId}`);
+              } else {
+                logger.warn(
+                  `删除后端Agent会话失败: ${agentSessionId}, 状态码: ${response.status}`,
+                );
+              }
+            })
+            .catch((error) => {
+              logger.warn(`删除后端Agent会话异常: ${agentSessionId}`, error);
+            });
+        }
+
         const sessions = get().sessions.slice();
         sessions.splice(index, 1);
 
@@ -372,6 +400,12 @@ export const useChatStore = createPersistStore(
             text: Locale.Home.Revert,
             onClick() {
               set(() => restoreState);
+              // 如果撤销删除，需要重新创建Agent会话
+              if (agentSessionId) {
+                logger.info(
+                  `撤销删除会话，Agent会话ID: ${agentSessionId} 将在下次对话时重新创建`,
+                );
+              }
             },
           },
           5000,
