@@ -7,11 +7,8 @@ import ReturnIcon from "@/app/icons/return.svg";
 import Locale from "@/app/locales";
 import { Path } from "@/app/constant";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  copyToClipboard,
-  getMessageTextContent,
-  useMobileScreen,
-} from "@/app/utils";
+import { copyToClipboard, getMessageTextContent } from "@/app/utils";
+import { useMobileScreen } from "@/app/utils/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig } from "@/app/store";
 import MinIcon from "@/app/icons/min.svg";

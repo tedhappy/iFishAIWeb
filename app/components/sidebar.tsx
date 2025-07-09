@@ -22,7 +22,8 @@ import {
 } from "../constant";
 
 import { useNavigate } from "react-router-dom";
-import { isIOS, useMobileScreen } from "../utils";
+import { isIOS } from "../utils";
+import { useMobileScreen } from "../utils/client";
 import dynamic from "next/dynamic";
 import { Selector, showConfirm, Modal } from "./ui-lib";
 import clsx from "clsx";

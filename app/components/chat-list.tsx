@@ -17,7 +17,7 @@ import { MaskAvatar } from "./mask";
 import { Mask } from "../store/mask";
 import { useRef, useEffect } from "react";
 import { showConfirm } from "./ui-lib";
-import { useMobileScreen } from "../utils";
+import { useMobileScreen } from "../utils/client";
 import clsx from "clsx";
 
 export function ChatItem(props: {

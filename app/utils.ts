@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
 import { showToast } from "./components/ui-lib";
 import Locale from "./locales";
 import { RequestMessage } from "./client/api";
-import { logger } from "@/app/utils/logger";
 import {
   REQUEST_TIMEOUT_MS,
   REQUEST_TIMEOUT_MS_FOR_THINKING,
@@ -13,9 +11,6 @@ import { fetch as tauriStreamFetch } from "./utils/stream";
 import { VISION_MODEL_REGEXES, EXCLUDE_VISION_MODEL_REGEXES } from "./constant";
 import { useAccessStore } from "./store";
 import { ModelSize } from "./typing";
-
-// Re-export logger for other modules
-export { logger };
 
 export function trimTopic(topic: string) {
   // Fix an issue where double quotes still show in the Indonesian language
@@ -122,36 +117,7 @@ export function isIOS() {
   return /iphone|ipad|ipod/.test(userAgent);
 }
 
-export function useWindowSize() {
-  const [size, setSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
-
-  useEffect(() => {
-    const onResize = () => {
-      setSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
-
-  return size;
-}
-
 export const MOBILE_MAX_WIDTH = 600;
-export function useMobileScreen() {
-  const { width } = useWindowSize();
-
-  return width <= MOBILE_MAX_WIDTH;
-}
 
 export function isFirefox() {
   return (
@@ -390,9 +356,7 @@ export function safeLocalStorage(): {
   const safeLog = {
     error: (message: string, error?: any) => {
       try {
-        if (typeof logger !== "undefined" && logger?.error) {
-          logger.error(message, error);
-        } else if (typeof console !== "undefined" && console?.error) {
+        if (typeof console !== "undefined" && console?.error) {
           console.error(message, error);
         }
       } catch (e) {
@@ -401,9 +365,7 @@ export function safeLocalStorage(): {
     },
     warn: (message: string) => {
       try {
-        if (typeof logger !== "undefined" && logger?.warn) {
-          logger.warn(message);
-        } else if (typeof console !== "undefined" && console?.warn) {
+        if (typeof console !== "undefined" && console?.warn) {
           console.warn(message);
         }
       } catch (e) {
@@ -480,9 +442,7 @@ export function clientUpdate() {
   // 安全的日志记录函数
   const safeLogError = (message: string, error?: any) => {
     try {
-      if (typeof logger !== "undefined" && logger?.error) {
-        logger.error(message, error);
-      } else if (typeof console !== "undefined" && console?.error) {
+      if (typeof console !== "undefined" && console?.error) {
         console.error(message, error);
       }
     } catch (e) {

@@ -1,4 +1,4 @@
-import { logger } from "@/app/utils";
+import { logger } from "@/app/utils/logger";
 
 export class AudioHandler {
   private context: AudioContext;

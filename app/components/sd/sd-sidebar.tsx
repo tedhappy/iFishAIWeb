@@ -21,7 +21,7 @@ import {
 import { getParams, getModelParamBasicData } from "./sd-panel";
 import { useSdStore } from "@/app/store/sd";
 import { showToast } from "@/app/components/ui-lib";
-import { useMobileScreen } from "@/app/utils";
+import { useMobileScreen } from "@/app/utils/client";
 
 const SdPanel = dynamic(
   async () => (await import("@/app/components/sd")).SdPanel,

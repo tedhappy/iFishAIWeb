@@ -44,7 +44,7 @@ import {
   getTimeoutMSByModel,
 } from "@/app/utils";
 import { fetch } from "@/app/utils/stream";
-import { logger } from "@/app/utils";
+import { logger } from "@/app/utils/logger";
 
 // 临时 OpenaiPath 对象，用于替代被禁用的 OpenAI 常量
 const OpenaiPath = {

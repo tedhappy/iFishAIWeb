@@ -13,12 +13,7 @@ import {
   showToast,
 } from "./ui-lib";
 import { IconButton } from "./button";
-import {
-  copyToClipboard,
-  downloadAs,
-  getMessageImages,
-  useMobileScreen,
-} from "../utils";
+import { copyToClipboard, downloadAs, getMessageImages } from "../utils";
 
 import CopyIcon from "../icons/copy.svg";
 import LoadingIcon from "../icons/three-dots.svg";
@@ -39,6 +34,7 @@ import { EXPORT_MESSAGE_CLASS_NAME } from "../constant";
 import { getClientConfig } from "../config/client";
 import { type ClientApi, getClientApi } from "../client/api";
 import { getMessageTextContent } from "../utils";
+import { useMobileScreen } from "../utils/client";
 import { MaskAvatar } from "./mask";
 import clsx from "clsx";
 

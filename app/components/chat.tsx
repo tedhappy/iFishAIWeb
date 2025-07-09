@@ -59,10 +59,10 @@ import {
   safeLocalStorage,
   getModelSizes,
   supportsCustomSize,
-  useMobileScreen,
   selectOrCopy,
-  logger,
 } from "../utils";
+import { logger } from "../utils/logger";
+import { useMobileScreen } from "../utils/client";
 
 import { uploadImage as uploadImageRemote } from "@/app/utils/chat";
 

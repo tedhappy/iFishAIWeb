@@ -24,7 +24,7 @@ import {
 } from "@/app/utils";
 import { RequestPayload } from "./openai";
 import { fetch } from "@/app/utils/stream";
-import { logger } from "@/app/utils";
+import { logger } from "@/app/utils/logger";
 
 export class DeepSeekApi implements LLMApi {
   private disableListModels = true;
