@@ -573,7 +573,7 @@ export const useChatStore = createPersistStore(
             onRetry: (attempt, error) => {
               console.log(`重试第 ${attempt} 次:`, error.message);
               botMessage.loadingStage = "connecting";
-              botMessage.content = `连接失败，正在重试 (${attempt}/${RetryPresets.network.maxRetries})...`;
+              botMessage.content = `网络连接不稳定，正在重试 (${attempt}/${RetryPresets.network.maxRetries})...`;
               get().updateTargetSession(session, (session) => {
                 session.messages = session.messages.concat();
               });
@@ -839,27 +839,39 @@ export const useChatStore = createPersistStore(
 
         // 提供更友好的错误信息和操作建议
         let errorMessage = "";
-        let showRetryToast = false;
 
         if (error instanceof Error) {
           if (error.message.includes("会话已过期")) {
             errorMessage = "会话已过期，请点击重试按钮重新发送消息";
-            showRetryToast = true;
           } else if (error.message.includes("服务器内部错误")) {
             errorMessage = "服务器暂时繁忙，已尝试多次重试，请稍后再试";
-            showRetryToast = true;
           } else if (error.message.includes("连接失败")) {
             errorMessage = "网络连接异常，已尝试多次重试，请检查网络后重试";
-            showRetryToast = true;
           } else if (error.message.includes("初始化Agent会话失败")) {
             errorMessage = "Agent服务初始化失败，已尝试多次重试，请稍后重试";
-            showRetryToast = true;
+          } else if (
+            error.name === "AbortError" ||
+            error.message.includes("aborted") ||
+            error.message.includes("The user aborted a request")
+          ) {
+            // 处理网络请求被中止的情况（通常是网络超时或连接问题）
+            errorMessage = "网络连接失败，请联系管理员";
+          } else if (
+            error.message.includes("timeout") ||
+            error.message.includes("超时")
+          ) {
+            errorMessage = "网络连接失败，请联系管理员";
+          } else if (
+            error.message.includes("fetch") ||
+            error.message.includes("network") ||
+            error.message.includes("Failed to fetch")
+          ) {
+            errorMessage = "网络连接失败，请联系管理员";
           } else {
             errorMessage = `${error.message}（已尝试多次重试）`;
           }
         } else {
-          errorMessage = "发生未知错误，已尝试多次重试，请稍后重试";
-          showRetryToast = true;
+          errorMessage = "网络连接失败，请联系管理员";
         }
 
         botMessage.content = errorMessage;
@@ -868,14 +880,6 @@ export const useChatStore = createPersistStore(
         // 确保userMessage存在时才设置错误状态
         if (userMessage) {
           userMessage.isError = true;
-        }
-
-        // 显示友好的错误提示
-        if (showRetryToast && !isRetry) {
-          showToast("连接失败，已自动重试多次，请稍后手动重试", {
-            text: "了解",
-            onClick: () => {},
-          });
         }
 
         get().updateTargetSession(session, (session) => {
@@ -926,6 +930,12 @@ export const useChatStore = createPersistStore(
 
           while (true) {
             if (controller.signal.aborted) {
+              // 用户取消，关闭reader并退出循环
+              try {
+                await reader.cancel();
+              } catch (e) {
+                console.warn("关闭reader失败:", e);
+              }
               break;
             }
 
@@ -989,19 +999,31 @@ export const useChatStore = createPersistStore(
         } catch (error) {
           console.error("流式响应处理错误:", error);
 
-          // 显示错误信息
-          botMessage.streaming = false;
-          botMessage.content = `流式响应出错: ${error instanceof Error ? error.message : "未知错误"}`;
-          botMessage.date = new Date().toLocaleString();
-          botMessage.isError = true;
-          botMessage.loadingStage = "error";
+          // 检查是否是用户主动取消
+          if (controller.signal.aborted) {
+            // 用户主动取消，保留已打印的内容并停止流式状态
+            botMessage.streaming = false;
+            botMessage.date = new Date().toLocaleString();
+            botMessage.isError = false;
+            botMessage.loadingStage = undefined;
+            // 不修改content，保留已经打印的内容
+          } else {
+            // 其他错误，显示错误信息
+            botMessage.streaming = false;
+            botMessage.content = `流式响应出错: ${error instanceof Error ? error.message : "未知错误"}`;
+            botMessage.date = new Date().toLocaleString();
+            botMessage.isError = true;
+            botMessage.loadingStage = "error";
+          }
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();
           });
 
-          // 重新抛出错误，让重试机制处理
-          throw error;
+          // 如果不是用户主动取消，重新抛出错误让重试机制处理
+          if (!controller.signal.aborted) {
+            throw error;
+          }
         } finally {
           // 清理controller
           ChatControllerPool.remove(session.id, messageId);
@@ -1079,11 +1101,22 @@ export const useChatStore = createPersistStore(
             onError: (error: Error) => {
               console.error("打字机效果执行错误:", error);
 
-              // 显示完整内容并标记错误
-              botMessage.streaming = false;
-              botMessage.content = fullResponse;
-              botMessage.date = new Date().toLocaleString();
-              botMessage.isError = true;
+              // 检查是否是用户主动取消
+              if (controller?.signal.aborted) {
+                // 用户主动取消，保留已打印的内容并停止流式状态
+                botMessage.streaming = false;
+                botMessage.date = new Date().toLocaleString();
+                botMessage.isError = false;
+                botMessage.loadingStage = undefined;
+                // 不修改content，保留已经打印的内容
+              } else {
+                // 其他错误，显示完整内容并标记错误
+                botMessage.streaming = false;
+                botMessage.content = fullResponse;
+                botMessage.date = new Date().toLocaleString();
+                botMessage.isError = true;
+                botMessage.loadingStage = "error";
+              }
 
               get().updateTargetSession(session, (session) => {
                 session.messages = session.messages.concat();
@@ -1104,11 +1137,22 @@ export const useChatStore = createPersistStore(
         } catch (error) {
           console.error("打字机效果初始化错误:", error);
 
-          // 直接显示完整内容
-          botMessage.streaming = false;
-          botMessage.content = fullResponse;
-          botMessage.date = new Date().toLocaleString();
-          botMessage.isError = true;
+          // 检查是否是用户主动取消
+          if (controller?.signal.aborted) {
+            // 用户主动取消，保留已打印的内容并停止流式状态
+            botMessage.streaming = false;
+            botMessage.date = new Date().toLocaleString();
+            botMessage.isError = false;
+            botMessage.loadingStage = undefined;
+            // 不修改content，保留已经打印的内容
+          } else {
+            // 其他错误，直接显示完整内容
+            botMessage.streaming = false;
+            botMessage.content = fullResponse;
+            botMessage.date = new Date().toLocaleString();
+            botMessage.isError = true;
+            botMessage.loadingStage = "error";
+          }
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();

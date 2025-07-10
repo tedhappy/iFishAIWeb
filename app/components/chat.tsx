@@ -29,7 +29,6 @@ import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
 import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
-import StopIcon from "../icons/pause.svg";
 import SizeIcon from "../icons/size.svg";
 import QualityIcon from "../icons/hd.svg";
 import StyleIcon from "../icons/palette.svg";
@@ -588,6 +587,7 @@ export function ChatActions(props: {
   return (
     <div className={styles["chat-input-actions"]}>
       <>
+        {/* 隐藏立即显示按钮 - 用户要求不再使用该功能
         {couldStop && (
           <ChatAction
             onClick={stopAll}
@@ -595,6 +595,7 @@ export function ChatActions(props: {
             icon={<StopIcon />}
           />
         )}
+        */}
         {!props.hitBottom && (
           <ChatAction
             onClick={props.scrollToBottom}
