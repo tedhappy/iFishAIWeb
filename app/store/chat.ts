@@ -951,6 +951,11 @@ export const useChatStore = createPersistStore(
                 try {
                   const data = JSON.parse(line.slice(6));
 
+                  // 打印每次接收到的流式响应数据
+                  logger.log(
+                    `[Agent流式响应] 接收数据类型: ${data.type}, 内容: ${data.content ? `"${data.content.substring(0, 100)}${data.content.length > 100 ? "..." : ""}"` : "无内容"}, 会话ID: ${sessionId}`,
+                  );
+
                   if (data.type === "chunk" && data.content) {
                     fullResponse += data.content;
                     botMessage.content = fullResponse;
@@ -969,6 +974,9 @@ export const useChatStore = createPersistStore(
                     throw new Error(data.error || "流式响应出错");
                   } else if (data.type === "done") {
                     // 后端发送的结束标记
+                    logger.log(
+                      `[Agent流式响应] 接收到结束标记, 会话ID: ${sessionId}`,
+                    );
                     break;
                   }
                 } catch (parseError) {

@@ -367,10 +367,22 @@ export function stream(
         if (!text || text.trim().length === 0) {
           return;
         }
+
+        // 打印每次接收到的流式响应原始数据
+        logger.log(
+          `[流式响应-通用] 接收原始数据: "${text.substring(0, 200)}${text.length > 200 ? "..." : ""}"`,
+        );
+
         try {
           const chunk = parseSSE(text, runTools);
           if (chunk) {
+            // 打印解析后的内容块
+            logger.log(
+              `[流式响应-通用] 解析后内容: "${chunk.substring(0, 100)}${chunk.length > 100 ? "..." : ""}"`,
+            );
             remainText += chunk;
+          } else {
+            logger.log(`[流式响应-通用] 解析后无内容`);
           }
         } catch (e) {
           logger.error("[Request] parse error", text, msg, e);
@@ -595,10 +607,22 @@ export function streamWithThink(
         }
         try {
           const chunk = parseSSE(text, runTools);
+
+          // 打印每次接收到的流式响应原始数据
+          logger.log(
+            `[流式响应] 接收原始数据: "${text.substring(0, 200)}${text.length > 200 ? "..." : ""}"`,
+          );
+
           // Skip if content is empty
           if (!chunk?.content || chunk.content.length === 0) {
+            logger.log(`[流式响应] 跳过空内容块`);
             return;
           }
+
+          // 打印解析后的内容块
+          logger.log(
+            `[流式响应] 解析后内容: "${chunk.content.substring(0, 100)}${chunk.content.length > 100 ? "..." : ""}", 思考模式: ${chunk.isThinking || false}`,
+          );
 
           // deal with <think> and </think> tags start
           if (!chunk.isThinking) {
