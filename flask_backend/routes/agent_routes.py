@@ -102,10 +102,14 @@ def chat_with_agent():
         generate_stream(),
         mimetype='text/plain',
         headers={
-            'Cache-Control': 'no-cache',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
             'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Headers': 'Content-Type',
+            'X-Accel-Buffering': 'no',  # 禁用 Nginx 缓冲
+            'Transfer-Encoding': 'chunked',
         }
     )
 
