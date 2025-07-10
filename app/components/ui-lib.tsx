@@ -10,6 +10,19 @@ import CancelIcon from "../icons/cancel.svg";
 import MaxIcon from "../icons/max.svg";
 import MinIcon from "../icons/min.svg";
 
+// 导出图标组件
+export {
+  LoadingIcon,
+  CloseIcon,
+  EyeIcon,
+  EyeOffIcon,
+  DownIcon,
+  ConfirmIcon,
+  CancelIcon,
+  MaxIcon,
+  MinIcon,
+};
+
 import Locale from "../locales";
 
 import { createRoot } from "react-dom/client";
@@ -490,8 +503,8 @@ export function Selector<T>(props: {
     Array.isArray(props.defaultSelectedValue)
       ? props.defaultSelectedValue
       : props.defaultSelectedValue !== undefined
-      ? [props.defaultSelectedValue]
-      : [],
+        ? [props.defaultSelectedValue]
+        : [],
   );
 
   const handleSelection = (e: MouseEvent, value: T) => {

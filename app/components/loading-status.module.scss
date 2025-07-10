@@ -1,0 +1,317 @@
+.loading-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: var(--white);
+  border-radius: 12px;
+  border: var(--border-in-light);
+  box-shadow: var(--card-shadow);
+  transition: all 0.2s ease;
+  max-width: fit-content;
+  position: relative;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary);
+  }
+
+  .loading-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+
+    .loading-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+
+      .error-icon {
+        font-size: 10px;
+        color: white;
+      }
+    }
+
+    .loading-text {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .stage-message {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--black);
+        white-space: nowrap;
+      }
+
+      .time-display {
+        font-size: 11px;
+        color: var(--black);
+        opacity: 0.6;
+        white-space: nowrap;
+        background: var(--hover-color);
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-weight: 400;
+      }
+
+      .progress-container {
+        margin-left: 6px;
+        width: 60px;
+
+        .progress-bar {
+          width: 100%;
+          height: 3px;
+          background: var(--hover-color);
+          border-radius: 4px;
+          overflow: hidden;
+          position: relative;
+
+          .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+          }
+        }
+
+        .progress-text {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .loading-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 8px;
+
+    .action-button {
+      padding: 4px 10px;
+      border: var(--border-in-light);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--black);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+
+      &:hover {
+        background: var(--hover-color);
+        border-color: var(--primary);
+      }
+
+      &.retry-button {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+
+        &:hover {
+          opacity: 0.9;
+        }
+      }
+    }
+  }
+}
+
+
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+}
+
+@keyframes shimmerBackground {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(var(--primary-rgb), 0.3);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 4px 16px rgba(var(--primary-rgb), 0.5);
+  }
+}
+
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 暗色主题适配
+[data-theme="dark"] {
+  .loading-status {
+    background: var(--white);
+    border-color: var(--border-in-light);
+    
+    &:hover {
+      border-color: var(--primary);
+    }
+
+    .loading-content {
+      .loading-text {
+        .stage-message {
+          color: var(--black);
+        }
+
+        .time-display {
+          color: var(--black);
+          background: var(--hover-color);
+        }
+
+        .progress-container {
+          .progress-bar {
+            background: var(--hover-color);
+          }
+        }
+      }
+    }
+
+    .loading-actions {
+      .action-button {
+        background: var(--white);
+        border-color: var(--border-in-light);
+        color: var(--black);
+
+        &:hover {
+          background: var(--hover-color);
+          border-color: var(--primary);
+        }
+        
+        &.retry-button {
+          background: var(--primary);
+          border-color: var(--primary);
+          color: white;
+          
+          &:hover {
+            opacity: 0.9;
+          }
+        }
+      }
+    }
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .loading-status {
+    margin: 3px 0;
+    padding: 6px 10px;
+    border-radius: 10px;
+
+    .loading-content {
+      gap: 6px;
+
+      .loading-icon {
+        width: 14px;
+        height: 14px;
+
+        .error-icon {
+          font-size: 9px;
+        }
+      }
+
+      .loading-text {
+        gap: 4px;
+
+        .stage-message {
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .time-display {
+          font-size: 10px;
+          padding: 1px 4px;
+          border-radius: 6px;
+        }
+
+        .progress-container {
+          width: 50px;
+
+          .progress-bar {
+            height: 2px;
+            border-radius: 3px;
+            
+            .progress-fill {
+              border-radius: 3px;
+            }
+          }
+        }
+      }
+    }
+
+    .loading-actions {
+      gap: 4px;
+      margin-left: 6px;
+
+      .action-button {
+        padding: 3px 8px;
+        font-size: 10px;
+        border-radius: 6px;
+      }
+    }
+  }
+}

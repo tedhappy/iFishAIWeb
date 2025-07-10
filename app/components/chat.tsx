@@ -105,6 +105,7 @@ import { useAllModels } from "../utils/hooks";
 import { ClientApi } from "../client/api";
 import { createTTSPlayer } from "../utils/audio";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "../utils/ms_edge_tts";
+import { LoadingStatus } from "./loading-status";
 
 import { isEmpty } from "lodash-es";
 import { getModelProvider } from "../utils/model";
@@ -504,8 +505,11 @@ export function ChatActions(props: {
     config.update((config) => (config.theme = nextTheme));
   }
 
-  // stop all responses
-  const couldStop = ChatControllerPool.hasPending();
+  // stop all responses - 只在正在生成回复时显示立即显示按钮
+  const isGenerating = session.messages.some(
+    (msg) => msg.streaming && msg.loadingStage === "generating",
+  );
+  const couldStop = isGenerating;
   const stopAll = () => ChatControllerPool.stopAll();
 
   // switch model
@@ -1804,8 +1808,7 @@ function Chat() {
                             {showActions && (
                               <div className={styles["chat-message-actions"]}>
                                 <div className={styles["chat-input-actions"]}>
-                                  {message.streaming ? // 隐藏流式输出过程中的停止按钮
-                                  null : (
+                                  {message.streaming ? null : ( // 隐藏流式输出过程中的停止按钮
                                     <>
                                       <ChatAction
                                         text={Locale.Chat.Actions.Retry}
@@ -1889,13 +1892,35 @@ function Chat() {
                             </div>
                           )}
                           <div className={styles["chat-message-item"]}>
+                            {/* 显示增强的加载状态 */}
+                            {message.streaming && message.loadingStage && (
+                              <LoadingStatus
+                                isLoading={true}
+                                stage={message.loadingStage}
+                                estimatedTime={
+                                  message.loadingStage === "connecting"
+                                    ? 10
+                                    : message.loadingStage === "processing"
+                                      ? 15
+                                      : 30
+                                }
+                                onCancel={() => {
+                                  onUserStop(message.id);
+                                }}
+                                onRetry={() => {
+                                  onResend(message);
+                                }}
+                                showProgress={message.loadingStage !== "error"}
+                              />
+                            )}
                             <Markdown
                               key={message.streaming ? "loading" : "done"}
                               content={getMessageTextContent(message)}
                               loading={
                                 (message.preview || message.streaming) &&
                                 message.content.length === 0 &&
-                                !isUser
+                                !isUser &&
+                                !message.loadingStage
                               }
                               //   onContextMenu={(e) => onRightClick(e, message)} // hard to use
                               onDoubleClickCapture={() => {

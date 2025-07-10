@@ -58,6 +58,7 @@ export type ChatMessage = RequestMessage & {
   tools?: ChatMessageTool[];
   audio_url?: string;
   isMcpResponse?: boolean;
+  loadingStage?: "connecting" | "processing" | "generating" | "error";
 };
 
 export function createMessage(override: Partial<ChatMessage>): ChatMessage {
@@ -491,6 +492,9 @@ export const useChatStore = createPersistStore(
         const session = get().currentSession();
         // 生成或获取持久化用户ID
         const userId = get().getPersistentUserId();
+        const { RetryManager, RetryPresets } = await import(
+          "../utils/retry-manager"
+        );
 
         // Create user message (only if not a retry)
         let userMessage: ChatMessage;
@@ -507,6 +511,7 @@ export const useChatStore = createPersistStore(
             role: "assistant",
             streaming: true,
             model: agentType || "agent",
+            loadingStage: "connecting", // 初始加载阶段
           });
 
           // Save messages to session
@@ -541,13 +546,80 @@ export const useChatStore = createPersistStore(
           botMessage.streaming = true;
           botMessage.isError = false;
           botMessage.content = "正在重新连接...";
+          botMessage.loadingStage = "connecting";
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();
           });
         }
 
+        // 使用重试机制包装API调用
+        const retryResult = await RetryManager.smartRetry(
+          async () => {
+            return await get().performAgentAPICall(
+              content,
+              attachImages,
+              agentType,
+              maskId,
+              session,
+              botMessage,
+              userMessage,
+              userId,
+              isRetry,
+            );
+          },
+          {
+            ...RetryPresets.network,
+            onRetry: (attempt, error) => {
+              console.log(`重试第 ${attempt} 次:`, error.message);
+              botMessage.loadingStage = "connecting";
+              botMessage.content = `连接失败，正在重试 (${attempt}/${RetryPresets.network.maxRetries})...`;
+              get().updateTargetSession(session, (session) => {
+                session.messages = session.messages.concat();
+              });
+            },
+          },
+        );
+
+        if (!retryResult.success) {
+          // 所有重试都失败了
+          get().handleFinalError(
+            retryResult.error,
+            botMessage,
+            userMessage,
+            session,
+            isRetry,
+          );
+        }
+      },
+
+      // 执行实际的API调用
+      async performAgentAPICall(
+        content: string,
+        attachImages: string[] | undefined,
+        agentType: string | undefined,
+        maskId: string | undefined,
+        session: ChatSession,
+        botMessage: ChatMessage,
+        userMessage: ChatMessage,
+        userId: string,
+        isRetry: boolean,
+      ): Promise<void> {
+        const { ChatControllerPool } = await import("../client/controller");
+
+        // 创建AbortController来支持取消功能
+        const controller = new AbortController();
+        const messageId = botMessage.id || "";
+
+        // 将controller添加到池中
+        ChatControllerPool.addController(session.id, messageId, controller);
+
         try {
+          // 更新加载状态为处理中
+          botMessage.loadingStage = "processing";
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
           // 获取后端 API 基础 URL（使用客户端环境变量）
           const apiBaseUrl =
             process.env.NEXT_PUBLIC_API_BASE_URL || "https://www.ifish.me";
@@ -616,6 +688,7 @@ export const useChatStore = createPersistStore(
                     headers: {
                       "Content-Type": "application/json",
                     },
+                    signal: controller.signal,
                     body: JSON.stringify({
                       user_id: userId,
                       mask_id: maskId || "default",
@@ -655,6 +728,7 @@ export const useChatStore = createPersistStore(
                 headers: {
                   "Content-Type": "application/json",
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
                   user_id: userId,
                   mask_id: maskId || "default",
@@ -674,12 +748,13 @@ export const useChatStore = createPersistStore(
             }
           }
 
-          // Send message to agent
+          // Send message to agent with streaming support
           const chatResponse = await fetch(`${apiBaseUrl}/flask/agent/chat`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
+            signal: controller.signal,
             body: JSON.stringify({
               session_id: sessionId,
               message: content,
@@ -725,72 +800,211 @@ export const useChatStore = createPersistStore(
             throw new Error(errorMsg);
           }
 
-          const responseData = await chatResponse.json();
+          // 更新加载状态为生成中
+          botMessage.loadingStage = "generating";
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+          });
 
-          // 打印后端/大模型的响应
-          logger.info(
-            `[聊天响应] Agent回复: "${responseData.response || "Agent暂无回复"}", 会话ID: ${sessionId}`,
+          // 处理流式响应
+          await get().handleStreamingResponse(
+            chatResponse,
+            botMessage,
+            session,
+            sessionId,
           );
-
-          // 实现打字机效果的流式显示
-          const fullResponse = responseData.response || "Agent暂无回复";
-          await get().simulateTypingEffect(botMessage, fullResponse, session);
         } catch (error) {
-          // 打印错误信息
-          logger.error(
-            `[聊天错误] 用户输入: "${content}", Agent类型: ${agentType || "ticket"}, 错误信息:`,
-            error,
-          );
+          // 重新抛出错误，让重试机制处理
+          throw error;
+        } finally {
+          // 清理controller（但不要在这里清理，因为simulateTypingEffect还需要使用）
+          // ChatControllerPool.remove(session.id, messageId);
+        }
+      },
 
-          logger.error("Agent API Error:", error);
+      // 处理最终错误（所有重试都失败后）
+      handleFinalError(
+        error: any,
+        botMessage: ChatMessage,
+        userMessage: ChatMessage,
+        session: ChatSession,
+        isRetry: boolean,
+      ): void {
+        // 打印错误信息
+        logger.error("[聊天最终错误]", error);
 
-          // Update bot message with error
-          botMessage.streaming = false;
+        // Update bot message with error
+        botMessage.streaming = false;
+        botMessage.loadingStage = "error";
 
-          // 提供更友好的错误信息和操作建议
-          let errorMessage = "";
-          let showRetryToast = false;
+        // 提供更友好的错误信息和操作建议
+        let errorMessage = "";
+        let showRetryToast = false;
 
-          if (error instanceof Error) {
-            if (error.message.includes("会话已过期")) {
-              errorMessage = "会话已过期，请点击重试按钮重新发送消息";
-              showRetryToast = true;
-            } else if (error.message.includes("服务器内部错误")) {
-              errorMessage = "服务器暂时繁忙，请稍后重试";
-              showRetryToast = true;
-            } else if (error.message.includes("连接失败")) {
-              errorMessage = "网络连接异常，请检查网络后重试";
-              showRetryToast = true;
-            } else if (error.message.includes("初始化Agent会话失败")) {
-              errorMessage = "Agent服务初始化失败，请稍后重试";
-              showRetryToast = true;
-            } else {
-              errorMessage = error.message;
-            }
-          } else {
-            errorMessage = "发生未知错误，请稍后重试";
+        if (error instanceof Error) {
+          if (error.message.includes("会话已过期")) {
+            errorMessage = "会话已过期，请点击重试按钮重新发送消息";
             showRetryToast = true;
+          } else if (error.message.includes("服务器内部错误")) {
+            errorMessage = "服务器暂时繁忙，已尝试多次重试，请稍后再试";
+            showRetryToast = true;
+          } else if (error.message.includes("连接失败")) {
+            errorMessage = "网络连接异常，已尝试多次重试，请检查网络后重试";
+            showRetryToast = true;
+          } else if (error.message.includes("初始化Agent会话失败")) {
+            errorMessage = "Agent服务初始化失败，已尝试多次重试，请稍后重试";
+            showRetryToast = true;
+          } else {
+            errorMessage = `${error.message}（已尝试多次重试）`;
+          }
+        } else {
+          errorMessage = "发生未知错误，已尝试多次重试，请稍后重试";
+          showRetryToast = true;
+        }
+
+        botMessage.content = errorMessage;
+        botMessage.isError = true;
+
+        // 确保userMessage存在时才设置错误状态
+        if (userMessage) {
+          userMessage.isError = true;
+        }
+
+        // 显示友好的错误提示
+        if (showRetryToast && !isRetry) {
+          showToast("连接失败，已自动重试多次，请稍后手动重试", {
+            text: "了解",
+            onClick: () => {},
+          });
+        }
+
+        get().updateTargetSession(session, (session) => {
+          session.messages = session.messages.concat();
+        });
+      },
+
+      // 处理流式响应
+      async handleStreamingResponse(
+        response: Response,
+        botMessage: ChatMessage,
+        session: ChatSession,
+        sessionId: string,
+      ): Promise<void> {
+        const { ChatControllerPool } = await import("../client/controller");
+        const messageId = botMessage.id || "";
+
+        // 获取已存在的controller
+        const key = ChatControllerPool.key(session.id, messageId);
+        let controller = ChatControllerPool.controllers[key];
+
+        if (!controller) {
+          console.warn("No controller found for message, creating new one");
+          controller = new AbortController();
+          ChatControllerPool.addController(session.id, messageId, controller);
+        }
+
+        // 设置初始状态
+        botMessage.streaming = true;
+        botMessage.content = "";
+        botMessage.isError = false;
+        botMessage.loadingStage = "generating";
+
+        // 更新会话以显示空的机器人消息
+        get().updateTargetSession(session, (session) => {
+          session.messages = session.messages.concat();
+        });
+
+        try {
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error("无法获取响应流");
           }
 
-          botMessage.content = errorMessage;
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let fullResponse = "";
+
+          while (true) {
+            if (controller.signal.aborted) {
+              break;
+            }
+
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.type === "chunk" && data.content) {
+                    fullResponse += data.content;
+                    botMessage.content = fullResponse;
+
+                    // 实时更新UI
+                    get().updateTargetSession(session, (session) => {
+                      session.messages = session.messages.concat();
+                    });
+                  } else if (data.type === "complete") {
+                    // 流式响应完成
+                    logger.info(
+                      `[聊天响应] Agent流式回复完成: "${fullResponse || "Agent暂无回复"}", 会话ID: ${sessionId}`,
+                    );
+                    break;
+                  } else if (data.type === "error") {
+                    throw new Error(data.error || "流式响应出错");
+                  } else if (data.type === "done") {
+                    // 后端发送的结束标记
+                    break;
+                  }
+                } catch (parseError) {
+                  console.warn("解析流式数据失败:", line, parseError);
+                }
+              }
+            }
+          }
+
+          // 完成显示，设置最终状态
+          botMessage.streaming = false;
+          botMessage.content = fullResponse || "Agent暂无回复";
+          botMessage.date = new Date().toLocaleString();
+          botMessage.isError = false;
+          botMessage.loadingStage = undefined;
+
+          // 一次性更新所有状态，避免多次触发UI更新
+          get().updateTargetSession(session, (session) => {
+            session.messages = session.messages.concat();
+            session.lastUpdate = Date.now();
+            // 直接在这里更新统计信息，避免额外的updateTargetSession调用
+            session.stat.charCount += botMessage.content.length;
+          });
+
+          // 检查MCP JSON和会话摘要（这些不会触发额外的UI更新）
+          get().checkMcpJson(botMessage);
+          get().summarizeSession(false, session);
+        } catch (error) {
+          console.error("流式响应处理错误:", error);
+
+          // 显示错误信息
+          botMessage.streaming = false;
+          botMessage.content = `流式响应出错: ${error instanceof Error ? error.message : "未知错误"}`;
+          botMessage.date = new Date().toLocaleString();
           botMessage.isError = true;
-
-          // 确保userMessage存在时才设置错误状态
-          if (userMessage) {
-            userMessage.isError = true;
-          }
-
-          // 显示友好的错误提示
-          if (showRetryToast && !isRetry) {
-            showToast("Agent连接异常，请使用重试按钮重新发送消息", {
-              text: "了解",
-              onClick: () => {},
-            });
-          }
+          botMessage.loadingStage = "error";
 
           get().updateTargetSession(session, (session) => {
             session.messages = session.messages.concat();
           });
+
+          // 重新抛出错误，让重试机制处理
+          throw error;
+        } finally {
+          // 清理controller
+          ChatControllerPool.remove(session.id, messageId);
         }
       },
 
@@ -803,17 +1017,23 @@ export const useChatStore = createPersistStore(
         const { ChatControllerPool } = await import("../client/controller");
         const { createTypingEffect } = await import("../utils/typing-effect");
 
-        // 创建AbortController来支持停止功能
-        const controller = new AbortController();
         const messageId = botMessage.id || "";
 
-        // 将controller添加到池中
-        ChatControllerPool.addController(session.id, messageId, controller);
+        // 获取已存在的controller（由performAgentAPICall创建）
+        const key = ChatControllerPool.key(session.id, messageId);
+        let controller = ChatControllerPool.controllers[key];
+
+        if (!controller) {
+          console.warn("No controller found for message, creating new one");
+          controller = new AbortController();
+          ChatControllerPool.addController(session.id, messageId, controller);
+        }
 
         // 设置初始状态
         botMessage.streaming = true;
         botMessage.content = "";
         botMessage.isError = false;
+        botMessage.loadingStage = "generating"; // 新增加载阶段
 
         // 更新会话以显示空的机器人消息
         get().updateTargetSession(session, (session) => {
@@ -823,7 +1043,7 @@ export const useChatStore = createPersistStore(
         try {
           // 创建打字机效果实例
           const typingEffect = createTypingEffect({
-            baseSpeed: 30,
+            baseSpeed: 40, // 稍微提高基础速度
             adaptiveSpeed: true,
             maxLength: 50000,
             maxRetries: 3,
@@ -835,6 +1055,7 @@ export const useChatStore = createPersistStore(
             onUpdate: (content: string) => {
               // 更新消息内容
               botMessage.content = content;
+              botMessage.loadingStage = "generating";
 
               // 更新会话
               get().updateTargetSession(session, (session) => {
@@ -847,6 +1068,7 @@ export const useChatStore = createPersistStore(
               botMessage.content = content;
               botMessage.date = new Date().toLocaleString();
               botMessage.isError = false;
+              botMessage.loadingStage = undefined;
 
               get().updateTargetSession(session, (session) => {
                 session.messages = session.messages.concat();
@@ -871,7 +1093,7 @@ export const useChatStore = createPersistStore(
             },
             shouldAbort: () => {
               // 检查是否被中止或用户切换了会话
-              if (controller.signal.aborted) {
+              if (controller?.signal.aborted) {
                 return true;
               }
 

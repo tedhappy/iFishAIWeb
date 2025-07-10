@@ -94,6 +94,80 @@ class BaseAgent(ABC):
                 'session_id': self.session_id
             }
     
+    def chat_stream(self, user_input: str, file_path: str = None):
+        """处理用户输入并返回流式响应"""
+        logger.info(f"[{self.session_id}] 开始处理流式聊天请求 - 输入长度: {len(user_input)}, 文件: {file_path}")
+        
+        try:
+            # 构建消息
+            if file_path:
+                message = {
+                    'role': 'user', 
+                    'content': [{'text': user_input}, {'file': file_path}]
+                }
+                logger.info(f"[{self.session_id}] 构建带文件的消息")
+            else:
+                message = {'role': 'user', 'content': user_input}
+                logger.info(f"[{self.session_id}] 构建文本消息")
+            
+            self.messages.append(message)
+            logger.info(f"[{self.session_id}] 消息已添加到历史，当前历史长度: {len(self.messages)}")
+            
+            # 调用qwen-agent并流式返回
+            logger.info(f"[{self.session_id}] 开始调用qwen-agent流式响应")
+            response = []
+            response_count = 0
+            last_content_length = 0  # 跟踪上次发送的内容长度
+            
+            for resp in self.bot.run(self.messages):
+                response = resp
+                response_count += 1
+                logger.debug(f"[{self.session_id}] 收到qwen-agent流式响应 #{response_count}")
+                
+                # 提取当前响应中的助手回复
+                for msg in resp:
+                    if msg.get('role') == 'assistant':
+                        content = msg.get('content', '')
+                        if content and len(content) > last_content_length:
+                            # 只发送新增的内容部分
+                            new_content = content[last_content_length:]
+                            last_content_length = len(content)
+                            yield {
+                                'type': 'chunk',
+                                'content': new_content,
+                                'session_id': self.session_id
+                            }
+            
+            logger.info(f"[{self.session_id}] qwen-agent流式调用完成，响应数量: {len(response)}")
+            self.messages.extend(response)
+            
+            # 提取最后的助手回复
+            assistant_reply = None
+            for msg in reversed(response):
+                if msg.get('role') == 'assistant':
+                    assistant_reply = msg.get('content', '')
+                    break
+            
+            # 发送完成信号
+            yield {
+                'type': 'complete',
+                'success': True,
+                'full_response': assistant_reply,
+                'session_id': self.session_id,
+                'message_count': len(self.messages)
+            }
+            
+            logger.info(f"[{self.session_id}] 流式聊天处理成功完成")
+            
+        except Exception as e:
+            logger.error(f"[{self.session_id}] 流式聊天处理失败: {str(e)}")
+            yield {
+                'type': 'error',
+                'success': False,
+                'error': str(e),
+                'session_id': self.session_id
+            }
+    
     def get_history(self) -> List[Dict[str, Any]]:
         """获取会话历史"""
         return self.messages

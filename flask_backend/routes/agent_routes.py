@@ -37,7 +37,11 @@ def init_agent():
 
 @agent_bp.route('/chat', methods=['POST'])
 def chat_with_agent():
-    """与Agent对话"""
+    """与Agent对话（流式响应）"""
+    from flask import Response
+    import json
+    import time
+    
     data = request.get_json()
     session_id = data.get('session_id')
     message = data.get('message')
@@ -62,22 +66,48 @@ def chat_with_agent():
         logger.error(f"会话不存在 - session_id: {session_id}")
         return jsonify({'error': '会话不存在'}), 404
     
-    try:
-        # 使用SessionManager的chat_with_agent方法，确保会话状态自动保存
-        if files:
-            # 如果有文件，需要特殊处理（暂时保持原有逻辑）
-            response = agent.chat(message, files[0])
-            # 手动更新会话时间戳并保存
-            session_manager.touch_session(session_id)
-        else:
-            # 使用SessionManager的统一方法
-            response = session_manager.chat_with_agent(session_id, message)
-        
-        logger.info(f"聊天响应成功 - session_id: {session_id}")
-        return jsonify(response)
-    except Exception as e:
-        logger.error(f"聊天处理失败 - session_id: {session_id}, error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+    def generate_stream():
+        """生成流式响应"""
+        try:
+            # 使用Agent的流式聊天方法
+            if files:
+                # 如果有文件，需要特殊处理
+                for chunk in agent.chat_stream(message, files[0]):
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                # 手动更新会话时间戳并保存
+                session_manager.touch_session(session_id)
+            else:
+                # 使用流式方法
+                for chunk in agent.chat_stream(message):
+                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                # 更新会话时间戳
+                session_manager.touch_session(session_id)
+            
+            # 发送结束标记
+            yield f"data: {json.dumps({'type': 'done', 'success': True}, ensure_ascii=False)}\n\n"
+            logger.info(f"流式聊天响应完成 - session_id: {session_id}")
+            
+        except Exception as e:
+            logger.error(f"流式聊天处理失败 - session_id: {session_id}, error: {str(e)}")
+            # 发送错误信息
+            error_chunk = {
+                'type': 'error',
+                'success': False,
+                'error': str(e)
+            }
+            yield f"data: {json.dumps(error_chunk, ensure_ascii=False)}\n\n"
+    
+    # 返回流式响应
+    return Response(
+        generate_stream(),
+        mimetype='text/plain',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        }
+    )
 
 @agent_bp.route('/history/<session_id>', methods=['GET'])
 def get_chat_history(session_id):
