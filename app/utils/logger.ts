@@ -15,22 +15,30 @@ function getTimestamp(): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-// 判断是否为生产环境
-// 通过NEXT_PUBLIC_API_BASE_URL判断：如果包含localhost或127.0.0.1则为开发环境
-function isProduction(): boolean {
+// 判断是否启用日志输出
+// 通过NEXT_PUBLIC_ENABLE_LOGGING环境变量控制：true启用，false禁用
+// 如果未设置该变量，则回退到原有逻辑（通过API_BASE_URL判断）
+function isLoggingEnabled(): boolean {
   try {
     // 在服务器端渲染时，process.env 可能不可用
     if (typeof process === "undefined") {
-      return false; // 默认为开发环境
+      return true; // 默认启用日志
     }
 
+    // 优先检查专门的日志控制环境变量
+    const enableLogging = process.env.NEXT_PUBLIC_ENABLE_LOGGING;
+    if (enableLogging !== undefined) {
+      return enableLogging.toLowerCase() === "true";
+    }
+
+    // 如果没有设置日志控制变量，回退到原有逻辑
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
     const isDev =
       apiBaseUrl.includes("localhost") || apiBaseUrl.includes("127.0.0.1");
-    return !isDev;
+    return isDev; // 开发环境启用日志，生产环境禁用
   } catch (error) {
-    // 如果出现任何错误，默认为开发环境以确保日志可见
-    return false;
+    // 如果出现任何错误，默认启用日志以确保调试可见
+    return true;
   }
 }
 
@@ -47,7 +55,7 @@ function safeConsole() {
 export const logger = {
   log: (...args: any[]) => {
     try {
-      if (!isProduction()) {
+      if (isLoggingEnabled()) {
         const consoleObj = safeConsole();
         consoleObj?.log(`[${getTimestamp()}]`, ...args);
       }
@@ -58,7 +66,7 @@ export const logger = {
 
   error: (...args: any[]) => {
     try {
-      if (!isProduction()) {
+      if (isLoggingEnabled()) {
         const consoleObj = safeConsole();
         consoleObj?.error(`[${getTimestamp()}]`, ...args);
       }
@@ -69,7 +77,7 @@ export const logger = {
 
   warn: (...args: any[]) => {
     try {
-      if (!isProduction()) {
+      if (isLoggingEnabled()) {
         const consoleObj = safeConsole();
         consoleObj?.warn(`[${getTimestamp()}]`, ...args);
       }
@@ -80,7 +88,7 @@ export const logger = {
 
   info: (...args: any[]) => {
     try {
-      if (!isProduction()) {
+      if (isLoggingEnabled()) {
         const consoleObj = safeConsole();
         consoleObj?.info(`[${getTimestamp()}]`, ...args);
       }
@@ -91,7 +99,7 @@ export const logger = {
 
   debug: (...args: any[]) => {
     try {
-      if (!isProduction()) {
+      if (isLoggingEnabled()) {
         const consoleObj = safeConsole();
         consoleObj?.debug(`[${getTimestamp()}]`, ...args);
       }
