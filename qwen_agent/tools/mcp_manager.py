@@ -179,11 +179,16 @@ class MCPManager:
     async def init_config_async(self, config: Dict):
         tools: list = []
         mcp_servers = config['mcpServers']
+        logger.info(f'[MCP初始化] 开始初始化MCP服务器，服务器数量: {len(mcp_servers)}')
+        
         for server_name in mcp_servers:
+            logger.info(f'[MCP初始化] 正在连接MCP服务器: {server_name}')
             client = MCPClient()
             server = mcp_servers[server_name]
             await client.connection_server(self.exit_stack, server)  # Attempt to connect to the server
             self.clients[server_name] = client  # Add to clients dict after successful connection
+            logger.info(f'[MCP初始化] MCP服务器连接成功: {server_name}, 可用工具数量: {len(client.tools) if client.tools else 0}')
+            
             for tool in client.tools:
                 """MCP tool example:
                 {
@@ -218,9 +223,12 @@ class MCPManager:
                     'required': parameters['required']
                 }
                 register_name = server_name + '-' + tool.name
+                logger.info(f'[MCP初始化] 注册MCP工具: {register_name} (服务器: {server_name}, 工具: {tool.name})')
                 agent_tool = self.create_tool_class(register_name, server_name, tool.name, tool.description,
                                                     cleaned_parameters)
                 tools.append(agent_tool)
+        
+        logger.info(f'[MCP初始化] MCP工具初始化完成，总计注册工具数量: {len(tools)}')
         return tools
 
     def create_tool_class(self, register_name, server_name, tool_name, tool_desc, tool_parameters):
@@ -234,14 +242,17 @@ class MCPManager:
 
             def call(self, params: Union[str, dict], **kwargs) -> str:
                 tool_args = json.loads(params)
+                logger.info(f'[MCP调用] 开始执行MCP工具 - 服务器: {server_name}, 工具: {tool_name}, 参数: {tool_args}')
+                
                 # 使用捕获的manager实例而不是创建新实例
                 client = manager_instance.clients[server_name]
                 future = asyncio.run_coroutine_threadsafe(client.execute_function(tool_name, tool_args), manager_instance.loop)
                 try:
                     result = future.result()
+                    logger.info(f'[MCP调用] MCP工具执行成功 - 服务器: {server_name}, 工具: {tool_name}, 结果长度: {len(str(result)) if result else 0}')
                     return result
                 except Exception as e:
-                    logger.info(f'Error executing function: {e}')
+                    logger.error(f'[MCP调用] MCP工具执行失败 - 服务器: {server_name}, 工具: {tool_name}, 错误: {e}')
                     return None
                 return 'Function executed'
 

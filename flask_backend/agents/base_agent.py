@@ -97,43 +97,50 @@ class BaseAgent(ABC):
         Returns:
             List[Dict[str, Any]]: MCP工具配置列表
         """
+        logger.info(f"[{self.session_id}] [MCP工具初始化] 开始获取MCP工具配置")
+        
         try:
             # 使用MCPToolFactory创建管理器实例
             from qwen_agent.tools.mcp_manager import MCPToolFactory
             
             # 获取自定义MCP配置（如果有）
             mcp_config = self.get_mcp_config()
+            logger.info(f"[{self.session_id}] [MCP工具初始化] 创建MCP管理器实例，自定义配置: {mcp_config is not None}")
             manager = MCPToolFactory.create_manager(mcp_config)
             
             # 检查MCP工具是否已预注册
             if not mcp_manager.is_initialized():
-                logger.warning(f"[{self.session_id}] MCP工具尚未预注册")
+                logger.warning(f"[{self.session_id}] [MCP工具初始化] MCP工具尚未预注册")
                 return []
             
             # 获取可用的工具名称
             available_tools = mcp_manager.get_available_tool_names()
             if not available_tools:
-                logger.warning(f"[{self.session_id}] 没有可用的MCP工具")
+                logger.warning(f"[{self.session_id}] [MCP工具初始化] 没有可用的MCP工具")
                 return []
+            
+            logger.info(f"[{self.session_id}] [MCP工具初始化] 发现可用工具: {available_tools}")
             
             # 获取工具配置
             tool_configs = mcp_manager.get_mcp_tools()
+            logger.info(f"[{self.session_id}] [MCP工具初始化] 获取工具配置，数量: {len(tool_configs)}")
             
             # 通过单例接口注册工具实例（内置重复检查，若已注册则直接返回成功）
             if mcp_manager.register_mcp_tools(available_tools, tool_configs):
+                logger.info(f"[{self.session_id}] [MCP工具初始化] MCP工具注册成功")
                 # 查询并返回已注册的工具实例
                 registered_tools = mcp_manager.query_mcp_tools(available_tools)
                 if registered_tools is not None:
-                    logger.debug(f"[{self.session_id}] 获取MCP工具实例成功: {available_tools}")
+                    logger.info(f"[{self.session_id}] [MCP工具初始化] 获取MCP工具实例成功: {available_tools}")
                     return registered_tools
                 else:
-                    logger.error(f"[{self.session_id}] 注册成功但查询失败")
+                    logger.error(f"[{self.session_id}] [MCP工具初始化] 注册成功但查询失败")
                     return tool_configs
             else:
-                logger.error(f"[{self.session_id}] MCP工具实例注册失败")
+                logger.error(f"[{self.session_id}] [MCP工具初始化] MCP工具实例注册失败")
                 return []
         except Exception as e:
-            logger.error(f"[{self.session_id}] 获取MCP工具失败: {e}")
+            logger.error(f"[{self.session_id}] [MCP工具初始化] 获取MCP工具失败: {e}")
             return []
     
     def get_enhanced_function_list(self) -> List[Dict[str, Any]]:
@@ -259,7 +266,7 @@ class BaseAgent(ABC):
             logger.info(f"[{self.session_id}] 消息已添加到历史，当前历史长度: {len(self.messages)}")
             
             # 调用qwen-agent
-            logger.info(f"[{self.session_id}] 开始调用qwen-agent")
+            logger.info(f"[{self.session_id}] 开始调用qwen-agent，当前可用工具数量: {len(self.bot.function_list) if hasattr(self.bot, 'function_list') else 0}")
             response = []
             response_count = 0
             for resp in self.bot.run(self.messages):
@@ -317,7 +324,7 @@ class BaseAgent(ABC):
             logger.info(f"[{self.session_id}] 消息已添加到历史，当前历史长度: {len(self.messages)}")
             
             # 调用qwen-agent并流式返回
-            logger.info(f"[{self.session_id}] 开始调用qwen-agent流式响应")
+            logger.info(f"[{self.session_id}] 开始调用qwen-agent流式响应，当前可用工具数量: {len(self.bot.function_list) if hasattr(self.bot, 'function_list') else 0}")
             response = []
             response_count = 0
             last_content_length = 0  # 跟踪上次发送的内容长度

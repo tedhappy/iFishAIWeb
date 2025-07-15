@@ -74,9 +74,9 @@ class MCPManager:
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/acbe007a6c2c40/sse"
                 },
-                "tavily-mcp": {
+                "bing-cn-mcp-server": {
                     "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/7214e0e509b141/sse"
+                    "url": "https://mcp.api-inference.modelscope.net/b9870e09875547/sse"
                 }
             }
         }]
@@ -166,6 +166,8 @@ class MCPManager:
         Returns:
             Optional[List[Dict[str, Any]]]: 如果所有工具都已注册，返回工具实例列表；否则返回None
         """
+        logger.info(f"[MCP查询] 开始查询MCP工具实例: {tool_names}")
+        
         # 使用全局锁确保线程安全的查询操作
         with self._lock:
             try:
@@ -173,7 +175,7 @@ class MCPManager:
                 query_config = {"mcpServers": {}}
                 for tool_name in tool_names:
                     if tool_name not in self._tool_configs:
-                        logger.debug(f"工具 {tool_name} 未在配置中找到")
+                        logger.info(f"[MCP查询] 工具 {tool_name} 未在配置中找到")
                         return None
                     query_config["mcpServers"][tool_name] = self._tool_configs[tool_name]
                 
@@ -181,14 +183,14 @@ class MCPManager:
                 
                 # 原子操作：检查是否已注册
                 if config_hash in self._registered_tools:
-                    logger.debug(f"找到已注册的MCP工具实例: {tool_names}")
+                    logger.info(f"[MCP查询] 找到已注册的MCP工具实例: {tool_names}")
                     return self._registered_tools[config_hash]
                 
-                logger.debug(f"MCP工具实例未注册: {tool_names}")
+                logger.info(f"[MCP查询] MCP工具实例未注册: {tool_names}")
                 return None
                 
             except Exception as e:
-                logger.error(f"查询MCP工具实例失败: {e}")
+                logger.error(f"[MCP查询] 查询MCP工具实例失败: {e}")
                 return None
     
     def register_mcp_tools(self, tool_names: List[str], tool_instances: List[Dict[str, Any]]) -> bool:
@@ -204,13 +206,15 @@ class MCPManager:
         Returns:
             bool: 注册是否成功
         """
+        logger.info(f"[MCP注册] 开始注册MCP工具实例: {tool_names}")
+        
         # 使用全局锁确保线程安全
         with self._lock:
             try:
                 # 验证工具名称是否都在配置中
                 for tool_name in tool_names:
                     if tool_name not in self._tool_configs:
-                        logger.error(f"工具 {tool_name} 未在预注册配置中找到")
+                        logger.error(f"[MCP注册] 工具 {tool_name} 未在预注册配置中找到")
                         return False
                 
                 # 生成配置哈希
@@ -222,17 +226,17 @@ class MCPManager:
                 
                 # 原子操作：检查是否已注册（单例模式核心逻辑）
                 if config_hash in self._registered_tools:
-                    logger.debug(f"MCP工具实例已存在，跳过重复注册: {tool_names}")
+                    logger.info(f"[MCP注册] MCP工具实例已存在，跳过重复注册: {tool_names}")
                     return True
                 
                 # 执行注册逻辑
                 self._registered_tools[config_hash] = tool_instances
                 
-                logger.info(f"成功注册MCP工具实例: {tool_names}")
+                logger.info(f"[MCP注册] 成功注册MCP工具实例: {tool_names}")
                 return True
                 
             except Exception as e:
-                logger.error(f"注册MCP工具实例失败: {e}")
+                logger.error(f"[MCP注册] 注册MCP工具实例失败: {e}")
                 return False
     
     def get_mcp_tools(self) -> List[Dict[str, Any]]:
