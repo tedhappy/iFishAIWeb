@@ -9,6 +9,7 @@ from agents.base_agent import BaseAgent
 from agents.ticket_agent import TicketAgent
 from agents.general_agent import GeneralAgent
 from .logger import logger
+from .mcp_manager import mcp_manager
 # 导入其他Agent类...
 
 class SessionManager:
@@ -90,6 +91,14 @@ class SessionManager:
         """移除Agent会话（线程安全）"""
         with self._lock:
             if session_id in self.sessions:
+                # 注销会话的MCP工具
+                try:
+                    if hasattr(mcp_manager, 'unregister_session_tools'):
+                        mcp_manager.unregister_session_tools(session_id)
+                        logger.info(f"已注销会话 {session_id} 的MCP工具")
+                except Exception as e:
+                    logger.warning(f"注销会话 {session_id} 的MCP工具失败: {e}")
+                
                 del self.sessions[session_id]
                 # 同时清理时间戳
                 if session_id in self.session_timestamps:
@@ -118,6 +127,14 @@ class SessionManager:
                     sessions_to_remove.append(session_id)
             
             for session_id in sessions_to_remove:
+                # 注销会话的MCP工具
+                try:
+                    if hasattr(mcp_manager, 'unregister_session_tools'):
+                        mcp_manager.unregister_session_tools(session_id)
+                        logger.debug(f"已注销用户会话 {session_id} 的MCP工具")
+                except Exception as e:
+                    logger.warning(f"注销用户会话 {session_id} 的MCP工具失败: {e}")
+                
                 del self.sessions[session_id]
                 if session_id in self.session_timestamps:
                     del self.session_timestamps[session_id]
@@ -154,14 +171,20 @@ class SessionManager:
                             # 重新创建Agent实例
                             agent_class = self.agent_types.get(agent_type, self.agent_types['default'])
                             if agent_class:
-                                agent = agent_class(agent_id=mask_id, user_id=user_id)
-                                # 如果有历史消息，加载它们
-                                if 'history' in data and hasattr(agent, 'load_history'):
-                                    agent.load_history(data['history'])
-                                self.sessions[session_id] = agent
-                                # 初始化时间戳（使用保存的时间戳或当前时间）
-                                self.session_timestamps[session_id] = data.get('timestamp', current_time)
-                                logger.info(f"已恢复会话: {session_id}")
+                                try:
+                                    agent = agent_class(agent_id=mask_id, user_id=user_id)
+                                    # 如果有历史消息，加载它们
+                                    if 'history' in data and hasattr(agent, 'load_history'):
+                                        agent.load_history(data['history'])
+                                    self.sessions[session_id] = agent
+                                    # 初始化时间戳（使用保存的时间戳或当前时间）
+                                    self.session_timestamps[session_id] = data.get('timestamp', current_time)
+                                    logger.info(f"已恢复会话: {session_id}")
+                                except Exception as agent_init_error:
+                                    # 如果Agent初始化失败（比如MCP工具冲突），记录错误但继续处理其他会话
+                                    logger.error(f"恢复会话失败 {session_id}: {str(agent_init_error)}")
+                                    # 不将失败的会话添加到sessions中
+                                    continue
                         except Exception as e:
                             logger.error(f"恢复会话失败 {session_id}: {str(e)}")
                             
@@ -244,6 +267,14 @@ class SessionManager:
             
             if expired_sessions:
                 for session_id in expired_sessions:
+                    # 注销会话的MCP工具
+                    try:
+                        if hasattr(mcp_manager, 'unregister_session_tools'):
+                            mcp_manager.unregister_session_tools(session_id)
+                            logger.debug(f"已注销过期会话 {session_id} 的MCP工具")
+                    except Exception as e:
+                        logger.warning(f"注销过期会话 {session_id} 的MCP工具失败: {e}")
+                    
                     if session_id in self.sessions:
                         del self.sessions[session_id]
                     if session_id in self.session_timestamps:
@@ -313,6 +344,14 @@ class SessionManager:
                         expired_sessions.append(session_id)
             
             for session_id in expired_sessions:
+                # 注销会话的MCP工具
+                try:
+                    if hasattr(mcp_manager, 'unregister_session_tools'):
+                        mcp_manager.unregister_session_tools(session_id)
+                        logger.debug(f"已注销用户过期会话 {session_id} 的MCP工具")
+                except Exception as e:
+                    logger.warning(f"注销用户过期会话 {session_id} 的MCP工具失败: {e}")
+                
                 del self.sessions[session_id]
                 if session_id in self.session_timestamps:
                     del self.session_timestamps[session_id]

@@ -141,29 +141,20 @@ class ExcSQLTool(BaseTool):
 class TicketAgent(BaseAgent):
     """门票助手Agent"""
     
-    def _init_agent(self) -> Assistant:
-        # LLM配置 - 使用环境变量中的阿里云API密钥
-        import os
-        llm_cfg = {
-            'model': 'qwen-turbo-latest',
-            'api_key': os.getenv('ALIBABA_API_KEY'),  # 从环境变量获取API密钥
-            'timeout': 30,
-            'retry_count': 3,
-        }
-        
-        # 记录配置信息（不记录敏感信息）
-        logger.info(f"[TicketAgent] 初始化LLM配置 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}")
-        
-        return Assistant(
-            llm=llm_cfg,
-            name='门票助手',
-            description='门票查询与订单分析',
-            system_message=self.get_system_prompt(),
-            function_list=self.get_function_list()
-        )
+    def get_agent_name(self) -> str:
+        """重写Agent名称"""
+        return '门票助手'
+    
+    def get_agent_description(self) -> str:
+        """重写Agent描述"""
+        return '门票查询与订单分析，具备SQL查询、数据可视化及多种MCP工具能力'
     
     def get_system_prompt(self) -> str:
-        return """我是门票助手，以下是关于门票订单表相关的字段，我可能会编写对应的SQL，对数据进行查询
+        return """我是门票助手，专门处理门票订单相关的查询和分析。我具备以下能力：
+
+**专业数据分析能力：**
+我可以对门票订单表进行SQL查询和数据分析，以下是门票订单表的字段结构：
+
 -- 门票订单表
 CREATE TABLE `tkt_orders` ( 
    `order_time` datetime DEFAULT NULL COMMENT '订单时间', 
@@ -181,9 +172,26 @@ CREATE TABLE `tkt_orders` (
    `quantity` bigint DEFAULT NULL COMMENT '数量' 
  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
-我将回答用户关于门票相关的问题。
+**增强工具能力（自动调用）：**
+1. **SQL查询工具**：执行SQL查询并自动生成可视化图表
+2. **高德地图工具**：查询景点位置、路线规划（当用户询问门票相关景点位置时）
+3. **网页获取工具**：获取景点官网信息、门票政策等
+4. **必应搜索工具**：搜索最新的门票价格、优惠信息
+5. **12306工具**：查询到达景点的火车信息
+6. **Tavily搜索工具**：深度搜索景点相关信息
+7. **时间工具**：处理订单时间分析、营业时间查询
 
-每当 exc_sql 工具返回 markdown 表格和图片时，你必须原样输出工具返回的全部内容（包括图片 markdown），不要只总结表格，也不要省略图片。这样用户才能直接看到表格和图片。"""
+**使用原则：**
+- 当用户询问门票数据分析时，我会使用SQL查询工具
+- 当用户询问景点位置、交通路线时，我会使用高德地图工具
+- 当用户需要最新门票信息时，我会使用搜索工具
+- 当用户询问交通信息时，我会使用12306工具
+- 我会根据问题自动选择最合适的工具组合
+
+**重要提示：**
+每当 exc_sql 工具返回 markdown 表格和图片时，我必须原样输出工具返回的全部内容（包括图片 markdown），不要只总结表格，也不要省略图片。这样用户才能直接看到表格和图片。
+
+我将以专业的态度为用户提供准确的门票数据分析和相关服务。"""
     
     def get_function_list(self) -> List[str]:
         return ['exc_sql']

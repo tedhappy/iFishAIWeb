@@ -6,30 +6,18 @@ from utils.logger import logger
 class GeneralAgent(BaseAgent):
     """通用助手Agent"""
     
-    def _init_agent(self) -> Assistant:
-        # LLM配置 - 使用环境变量中的阿里云API密钥
-        import os
-        llm_cfg = {
-            'model': 'qwen-turbo-latest',
-            'api_key': os.getenv('ALIBABA_API_KEY'),  # 从环境变量获取API密钥
-            'timeout': 30,
-            'retry_count': 3,
-        }
-        
-        # 记录配置信息（不记录敏感信息）
-        logger.info(f"[GeneralAgent] 初始化LLM配置 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}")
-        
-        return Assistant(
-            llm=llm_cfg,
-            name='通用助手',
-            description='智能对话助手，可以回答各种问题',
-            system_message=self.get_system_prompt(),
-            function_list=self.get_function_list()
-        )
+    def get_agent_name(self) -> str:
+        """重写Agent名称"""
+        return '通用助手'
+    
+    def get_agent_description(self) -> str:
+        """重写Agent描述"""
+        return '智能对话助手，具备地图查询、网页获取、搜索、火车票查询等多种能力'
     
     def get_system_prompt(self) -> str:
         return """我是一个智能通用助手，可以帮助用户解答各种问题。我具备以下能力：
 
+**基础对话能力：**
 1. 回答常识性问题
 2. 提供学习和工作建议
 3. 协助解决问题
@@ -38,6 +26,23 @@ class GeneralAgent(BaseAgent):
 6. 翻译和语言学习
 7. 数据分析和计算
 8. 生活建议和规划
+
+**增强工具能力（自动调用）：**
+1. **高德地图工具**：地图查询、路线规划、地点搜索、导航服务
+2. **网页获取工具**：获取指定网页内容、网页解析、内容提取
+3. **必应搜索工具**：实时搜索最新信息、新闻查询、知识检索
+4. **12306工具**：火车票查询、车次信息、票价查询
+5. **Tavily搜索工具**：智能搜索、深度信息检索
+6. **时间工具**：时间查询、日期计算、时区转换
+
+**使用原则：**
+- 我会根据用户的问题自动判断是否需要使用相应的工具
+- 当用户询问地理位置、路线、地图相关问题时，我会使用高德地图工具
+- 当用户需要获取网页内容时，我会使用网页获取工具
+- 当用户需要搜索最新信息时，我会使用搜索工具
+- 当用户询问火车票、车次信息时，我会使用12306工具
+- 当用户询问时间相关问题时，我会使用时间工具
+- 我会自动选择最合适的工具来回答用户问题，无需用户明确指定
 
 我会以友好、专业的态度为用户提供准确、有用的信息和建议。如果遇到我不确定的问题，我会诚实地告知用户，并尽可能提供相关的参考信息。"""
     
