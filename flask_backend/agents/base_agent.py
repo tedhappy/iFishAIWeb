@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import dashscope
 from qwen_agent.agents import Assistant
@@ -45,6 +45,9 @@ class BaseAgent(ABC):
         # 获取增强的工具列表
         enhanced_tools = self.get_enhanced_function_list()
         
+        # 获取MCP配置
+        mcp_config = self.get_mcp_config()
+        
         # 创建Assistant实例
         logger.info(f"[{self.session_id}] 开始创建Assistant实例")
         bot = Assistant(
@@ -52,7 +55,8 @@ class BaseAgent(ABC):
             name=self.get_agent_name(),
             description=self.get_agent_description(),
             system_message=self.get_system_prompt(),
-            function_list=enhanced_tools
+            function_list=enhanced_tools,
+            mcp_config=mcp_config
         )
         
         logger.info(f"[{self.session_id}] Agent初始化成功")
@@ -77,40 +81,59 @@ class BaseAgent(ABC):
         """获取可用的工具函数列表"""
         pass
     
+    def get_mcp_config(self) -> Optional[Dict[str, Any]]:
+        """获取MCP配置，子类可重写以提供自定义配置
+        
+        Returns:
+            Optional[Dict[str, Any]]: MCP配置字典，None表示使用全局默认配置
+        """
+        return None
+    
     def get_default_mcp_tools(self) -> List[Dict[str, Any]]:
         """获取默认的MCP工具配置
         
-        通过MCP管理器的单例接口获取工具实例，利用内置的重复注册检查机制
+        通过MCPToolFactory创建管理器实例，支持依赖注入或使用默认单例
         
         Returns:
             List[Dict[str, Any]]: MCP工具配置列表
         """
-        # 检查MCP工具是否已预注册
-        if not mcp_manager.is_initialized():
-            logger.warning(f"[{self.session_id}] MCP工具尚未预注册")
-            return []
-        
-        # 获取可用的工具名称
-        available_tools = mcp_manager.get_available_tool_names()
-        if not available_tools:
-            logger.warning(f"[{self.session_id}] 没有可用的MCP工具")
-            return []
-        
-        # 获取工具配置
-        tool_configs = mcp_manager.get_mcp_tools()
-        
-        # 通过单例接口注册工具实例（内置重复检查，若已注册则直接返回成功）
-        if mcp_manager.register_mcp_tools(available_tools, tool_configs):
-            # 查询并返回已注册的工具实例
-            registered_tools = mcp_manager.query_mcp_tools(available_tools)
-            if registered_tools is not None:
-                logger.debug(f"[{self.session_id}] 获取MCP工具实例成功: {available_tools}")
-                return registered_tools
+        try:
+            # 使用MCPToolFactory创建管理器实例
+            from qwen_agent.tools.mcp_manager import MCPToolFactory
+            
+            # 获取自定义MCP配置（如果有）
+            mcp_config = self.get_mcp_config()
+            manager = MCPToolFactory.create_manager(mcp_config)
+            
+            # 检查MCP工具是否已预注册
+            if not mcp_manager.is_initialized():
+                logger.warning(f"[{self.session_id}] MCP工具尚未预注册")
+                return []
+            
+            # 获取可用的工具名称
+            available_tools = mcp_manager.get_available_tool_names()
+            if not available_tools:
+                logger.warning(f"[{self.session_id}] 没有可用的MCP工具")
+                return []
+            
+            # 获取工具配置
+            tool_configs = mcp_manager.get_mcp_tools()
+            
+            # 通过单例接口注册工具实例（内置重复检查，若已注册则直接返回成功）
+            if mcp_manager.register_mcp_tools(available_tools, tool_configs):
+                # 查询并返回已注册的工具实例
+                registered_tools = mcp_manager.query_mcp_tools(available_tools)
+                if registered_tools is not None:
+                    logger.debug(f"[{self.session_id}] 获取MCP工具实例成功: {available_tools}")
+                    return registered_tools
+                else:
+                    logger.error(f"[{self.session_id}] 注册成功但查询失败")
+                    return tool_configs
             else:
-                logger.error(f"[{self.session_id}] 注册成功但查询失败")
-                return tool_configs
-        else:
-            logger.error(f"[{self.session_id}] MCP工具实例注册失败")
+                logger.error(f"[{self.session_id}] MCP工具实例注册失败")
+                return []
+        except Exception as e:
+            logger.error(f"[{self.session_id}] 获取MCP工具失败: {e}")
             return []
     
     def get_enhanced_function_list(self) -> List[Dict[str, Any]]:

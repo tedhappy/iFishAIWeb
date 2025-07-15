@@ -37,7 +37,8 @@ class FnCallAgent(Agent):
                          llm=llm,
                          system_message=system_message,
                          name=name,
-                         description=description)
+                         description=description,
+                         **kwargs)
 
         if not hasattr(self, 'mem'):
             # Default to use Memory to manage files

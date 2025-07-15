@@ -1,10 +1,16 @@
 import os
+import sys
 from dotenv import load_dotenv
 
 # 首先加载环境变量 - 必须在所有其他导入之前
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 env_path = os.path.join(project_root, '.env')
 load_dotenv(env_path)
+
+# 将本地qwen_agent路径添加到模块搜索路径的最前面，确保优先使用本地版本
+local_qwen_agent_path = os.path.join(project_root)
+if local_qwen_agent_path not in sys.path:
+    sys.path.insert(0, local_qwen_agent_path)
 
 # 然后导入其他模块
 from flask import Flask, request, jsonify

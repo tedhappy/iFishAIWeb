@@ -26,7 +26,8 @@ class Memory(Agent):
                  llm: Optional[Union[Dict, BaseChatModel]] = None,
                  system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
                  files: Optional[List[str]] = None,
-                 rag_cfg: Optional[Dict] = None):
+                 rag_cfg: Optional[Dict] = None,
+                 **kwargs):
         """Initialization the memory.
 
         Args:

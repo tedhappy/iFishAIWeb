@@ -27,6 +27,7 @@ class Agent(ABC):
                  system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
                  name: Optional[str] = None,
                  description: Optional[str] = None,
+                 mcp_config: Optional[Dict] = None,
                  **kwargs):
         """Initialization the agent.
 
@@ -38,17 +39,19 @@ class Agent(ABC):
             system_message: The specified system message for LLM chat.
             name: The name of this agent.
             description: The description of this agent, which will be used for multi_agent.
+            mcp_config: Optional MCP configuration for dependency injection.
         """
         if isinstance(llm, dict):
             self.llm = get_chat_model(llm)
         else:
             self.llm = llm
         self.extra_generate_cfg: dict = {}
+        self.mcp_config = mcp_config
 
         self.function_map = {}
         if function_list:
             for tool in function_list:
-                self._init_tool(tool)
+                self._init_tool(tool, self.mcp_config)
 
         self.system_message = system_message
         self.name = name
@@ -195,19 +198,23 @@ class Agent(ABC):
         else:
             return json.dumps(tool_result, ensure_ascii=False, indent=4)
 
-    def _init_tool(self, tool: Union[str, Dict, BaseTool]):
+    def _init_tool(self, tool: Union[str, Dict, BaseTool], mcp_config: Optional[Dict] = None):
         if isinstance(tool, BaseTool):
             tool_name = tool.name
             if tool_name in self.function_map:
                 logger.warning(f'Repeatedly adding tool {tool_name}, will use the newest tool in function list')
             self.function_map[tool_name] = tool
         elif isinstance(tool, dict) and 'mcpServers' in tool:
-            tools = MCPManager().initConfig(tool)
-            for tool in tools:
-                tool_name = tool.name
-                if tool_name in self.function_map:
-                    logger.warning(f'Repeatedly adding tool {tool_name}, will use the newest tool in function list')
-                self.function_map[tool_name] = tool
+            # 使用MCPToolFactory创建管理器实例，支持依赖注入
+            from qwen_agent.tools.mcp_manager import MCPToolFactory
+            manager = MCPToolFactory.create_manager(mcp_config)
+            tools = manager.initConfig(tool)
+            if tools:
+                for tool_instance in tools:
+                    tool_name = tool_instance.name
+                    if tool_name in self.function_map:
+                        logger.warning(f'Repeatedly adding tool {tool_name}, will use the newest tool in function list')
+                    self.function_map[tool_name] = tool_instance
         else:
             if isinstance(tool, dict):
                 tool_name = tool['name']

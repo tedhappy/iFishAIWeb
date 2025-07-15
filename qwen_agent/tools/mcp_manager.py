@@ -1,8 +1,9 @@
 import asyncio
 import json
 import threading
+import hashlib
 from contextlib import AsyncExitStack
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, List
 
 from dotenv import load_dotenv
 
@@ -10,24 +11,79 @@ from qwen_agent.log import logger
 from qwen_agent.tools.base import BaseTool, register_tool
 
 
+# 全局锁，用于线程安全的单例管理
+_global_lock = threading.RLock()
+
+
+class MCPToolFactory:
+    """MCP工具工厂类，用于依赖注入和实例管理"""
+    
+    @staticmethod
+    def create_manager(config: Optional[Dict] = None) -> 'MCPManager':
+        """创建或获取MCP管理器实例
+        
+        Args:
+            config: 可选的配置字典，用于创建特定配置的实例
+            
+        Returns:
+            MCPManager: MCP管理器实例
+        """
+        if config is None:
+            return MCPManager.get_default_instance()
+        else:
+            config_hash = MCPManager._generate_config_hash(config)
+            return MCPManager.get_instance(config_hash, config)
+
+
 class MCPManager:
-    _instance = None  # Private class variable to store the unique instance
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(MCPManager, cls).__new__(cls, *args, **kwargs)
-            cls._instance.__init__()
-        return cls._instance
-
-    def __init__(self):
-        if not hasattr(self, 'clients'):
-            """Set a new event loop in a separate thread"""
+    # 类级别的实例存储，支持多个配置实例
+    _instances: Dict[str, 'MCPManager'] = {}
+    _default_instance: Optional['MCPManager'] = None
+    _initialized_configs: Dict[str, List] = {}  # 缓存已初始化的工具列表
+    
+    def __init__(self, config_hash: str = 'default'):
+        """私有构造函数，通过工厂方法创建实例"""
+        if not hasattr(self, '_initialized'):
             load_dotenv()  # Load environment variables from .env file
+            self.config_hash = config_hash
             self.clients: dict = {}
             self.exit_stack = AsyncExitStack()
             self.loop = asyncio.new_event_loop()
             self.loop_thread = threading.Thread(target=self.start_loop, daemon=True)
             self.loop_thread.start()
+            self._initialized = True
+            logger.info(f"MCP管理器实例已初始化: {config_hash}")
+    
+    @classmethod
+    def get_default_instance(cls) -> 'MCPManager':
+        """获取默认的单例实例"""
+        with _global_lock:
+            if cls._default_instance is None:
+                cls._default_instance = cls('default')
+            return cls._default_instance
+    
+    @classmethod
+    def get_instance(cls, config_hash: str, config: Optional[Dict] = None) -> 'MCPManager':
+        """获取指定配置的单例实例"""
+        with _global_lock:
+            if config_hash not in cls._instances:
+                cls._instances[config_hash] = cls(config_hash)
+            return cls._instances[config_hash]
+    
+    @staticmethod
+    def _generate_config_hash(config: Dict) -> str:
+        """生成配置的哈希值"""
+        config_str = json.dumps(config, sort_keys=True)
+        return hashlib.md5(config_str.encode()).hexdigest()[:16]
+    
+    @classmethod
+    def reset_all_instances(cls):
+        """重置所有实例（用于测试）"""
+        with _global_lock:
+            cls._instances.clear()
+            cls._default_instance = None
+            cls._initialized_configs.clear()
+            logger.info("所有MCP管理器实例已重置")
 
     def start_loop(self):
         asyncio.set_event_loop(self.loop)
@@ -78,17 +134,46 @@ class MCPManager:
                 return False
         return True
 
-    def initConfig(self, config: Dict):
-        logger.info(f'Initialize from config {config}. ')
+    def initConfig(self, config: Optional[Dict] = None):
+        """初始化MCP配置，支持依赖注入和单例模式
+        
+        Args:
+            config: 可选的配置字典，用于依赖注入
+            
+        Returns:
+            List: 初始化的工具列表
+        """
+        if config is None:
+            # 使用默认单例管理器
+            manager = MCPManager.get_default_instance()
+            return []
+        
+        # 生成配置哈希
+        config_hash = self._generate_config_hash(config)
+        
+        # 检查是否已经初始化过相同配置
+        with _global_lock:
+            if config_hash in self._initialized_configs:
+                logger.info(f'配置已初始化，返回缓存的工具列表: {config_hash}')
+                return self._initialized_configs[config_hash]
+        
+        logger.info(f'开始初始化配置: {config_hash}')
         if not self.is_valid_mcp_servers(config):
             raise ValueError('Config format error')
+        
         # Submit coroutine to the event loop and wait for the result
         future = asyncio.run_coroutine_threadsafe(self.init_config_async(config), self.loop)
         try:
             result = future.result()  # You can specify a timeout if desired
+            
+            # 缓存初始化结果
+            with _global_lock:
+                self._initialized_configs[config_hash] = result
+            
+            logger.info(f'配置初始化完成: {config_hash}, 工具数量: {len(result) if result else 0}')
             return result
         except Exception as e:
-            logger.info(f'Error executing function: {e}')
+            logger.error(f'配置初始化失败: {e}')
             return None
 
     async def init_config_async(self, config: Dict):
@@ -139,6 +224,8 @@ class MCPManager:
         return tools
 
     def create_tool_class(self, register_name, server_name, tool_name, tool_desc, tool_parameters):
+        # 捕获当前manager实例的引用
+        manager_instance = self
 
         @register_tool(register_name)
         class ToolClass(BaseTool):
@@ -147,10 +234,9 @@ class MCPManager:
 
             def call(self, params: Union[str, dict], **kwargs) -> str:
                 tool_args = json.loads(params)
-                # Submit coroutine to the event loop and wait for the result
-                manager = MCPManager()
-                client = manager.clients[server_name]
-                future = asyncio.run_coroutine_threadsafe(client.execute_function(tool_name, tool_args), manager.loop)
+                # 使用捕获的manager实例而不是创建新实例
+                client = manager_instance.clients[server_name]
+                future = asyncio.run_coroutine_threadsafe(client.execute_function(tool_name, tool_args), manager_instance.loop)
                 try:
                     result = future.result()
                     return result
