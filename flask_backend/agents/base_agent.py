@@ -80,23 +80,38 @@ class BaseAgent(ABC):
     def get_default_mcp_tools(self) -> List[Dict[str, Any]]:
         """获取默认的MCP工具配置
         
-        现在使用全局MCP管理器，避免重复初始化
-        支持基于会话ID的工具名称区分
+        通过MCP管理器的单例接口获取工具实例，利用内置的重复注册检查机制
         
         Returns:
             List[Dict[str, Any]]: MCP工具配置列表
         """
-        # 延迟初始化MCP工具（如果尚未初始化）
+        # 检查MCP工具是否已预注册
         if not mcp_manager.is_initialized():
-            logger.info(f"[{self.session_id}] MCP工具尚未初始化，开始延迟初始化")
-            if mcp_manager.initialize_mcp_tools():
-                logger.info(f"[{self.session_id}] MCP工具延迟初始化成功")
-            else:
-                logger.error(f"[{self.session_id}] MCP工具延迟初始化失败: {mcp_manager.get_load_error()}")
-                return []
+            logger.warning(f"[{self.session_id}] MCP工具尚未预注册")
+            return []
         
-        # 使用会话ID获取唯一的工具配置
-        return mcp_manager.get_mcp_tools(self.session_id)
+        # 获取可用的工具名称
+        available_tools = mcp_manager.get_available_tool_names()
+        if not available_tools:
+            logger.warning(f"[{self.session_id}] 没有可用的MCP工具")
+            return []
+        
+        # 获取工具配置
+        tool_configs = mcp_manager.get_mcp_tools()
+        
+        # 通过单例接口注册工具实例（内置重复检查，若已注册则直接返回成功）
+        if mcp_manager.register_mcp_tools(available_tools, tool_configs):
+            # 查询并返回已注册的工具实例
+            registered_tools = mcp_manager.query_mcp_tools(available_tools)
+            if registered_tools is not None:
+                logger.debug(f"[{self.session_id}] 获取MCP工具实例成功: {available_tools}")
+                return registered_tools
+            else:
+                logger.error(f"[{self.session_id}] 注册成功但查询失败")
+                return tool_configs
+        else:
+            logger.error(f"[{self.session_id}] MCP工具实例注册失败")
+            return []
     
     def get_enhanced_function_list(self) -> List[Dict[str, Any]]:
         """获取增强后的工具函数列表
@@ -133,12 +148,12 @@ class BaseAgent(ABC):
         
         logger.info(f"[{self.session_id}] 工具加载完成: 自定义工具 {custom_count} 个, MCP工具 {mcp_count} 个, 去重后总计 {total_count} 个")
         
-        # 记录MCP工具注册状态
+        # 记录MCP工具状态
         if mcp_manager.is_initialized():
             try:
-                registered_count = mcp_manager.get_registered_tools_count() if hasattr(mcp_manager, 'get_registered_tools_count') else 'N/A'
-                session_tools_count = mcp_manager.get_session_tools_count(self.session_id) if hasattr(mcp_manager, 'get_session_tools_count') else 'N/A'
-                logger.info(f"[{self.session_id}] MCP状态: 全局已注册 {registered_count} 个工具, 当前会话 {session_tools_count} 个工具")
+                config_count = mcp_manager.get_tools_count()
+                instance_count = mcp_manager.get_registered_instances_count()
+                logger.info(f"[{self.session_id}] MCP状态: {config_count} 个工具配置, {instance_count} 个已注册实例")
             except Exception as e:
                 logger.debug(f"[{self.session_id}] 获取MCP状态信息失败: {e}")
         

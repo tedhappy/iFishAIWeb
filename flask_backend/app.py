@@ -56,11 +56,11 @@ def handle_exception(e):
 
 # 初始化MCP管理器
 if app.config.get('ENABLE_MCP', 'true').lower() == 'true':
-    logger.info("正在初始化MCP工具管理器...")
-    if mcp_manager.initialize_mcp_tools():
-        logger.info("MCP工具管理器初始化成功")
+    logger.info("正在预注册默认MCP工具...")
+    if mcp_manager.pre_register_default_tools():
+        logger.info("默认MCP工具预注册成功")
     else:
-        logger.error(f"MCP工具管理器初始化失败: {mcp_manager.get_load_error()}")
+        logger.error(f"默认MCP工具预注册失败: {mcp_manager.get_load_error()}")
 else:
     logger.info("MCP功能已禁用")
 

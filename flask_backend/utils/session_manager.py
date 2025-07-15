@@ -91,14 +91,6 @@ class SessionManager:
         """移除Agent会话（线程安全）"""
         with self._lock:
             if session_id in self.sessions:
-                # 注销会话的MCP工具
-                try:
-                    if hasattr(mcp_manager, 'unregister_session_tools'):
-                        mcp_manager.unregister_session_tools(session_id)
-                        logger.info(f"已注销会话 {session_id} 的MCP工具")
-                except Exception as e:
-                    logger.warning(f"注销会话 {session_id} 的MCP工具失败: {e}")
-                
                 del self.sessions[session_id]
                 # 同时清理时间戳
                 if session_id in self.session_timestamps:
@@ -127,14 +119,6 @@ class SessionManager:
                     sessions_to_remove.append(session_id)
             
             for session_id in sessions_to_remove:
-                # 注销会话的MCP工具
-                try:
-                    if hasattr(mcp_manager, 'unregister_session_tools'):
-                        mcp_manager.unregister_session_tools(session_id)
-                        logger.debug(f"已注销用户会话 {session_id} 的MCP工具")
-                except Exception as e:
-                    logger.warning(f"注销用户会话 {session_id} 的MCP工具失败: {e}")
-                
                 del self.sessions[session_id]
                 if session_id in self.session_timestamps:
                     del self.session_timestamps[session_id]
@@ -267,14 +251,6 @@ class SessionManager:
             
             if expired_sessions:
                 for session_id in expired_sessions:
-                    # 注销会话的MCP工具
-                    try:
-                        if hasattr(mcp_manager, 'unregister_session_tools'):
-                            mcp_manager.unregister_session_tools(session_id)
-                            logger.debug(f"已注销过期会话 {session_id} 的MCP工具")
-                    except Exception as e:
-                        logger.warning(f"注销过期会话 {session_id} 的MCP工具失败: {e}")
-                    
                     if session_id in self.sessions:
                         del self.sessions[session_id]
                     if session_id in self.session_timestamps:
@@ -344,14 +320,6 @@ class SessionManager:
                         expired_sessions.append(session_id)
             
             for session_id in expired_sessions:
-                # 注销会话的MCP工具
-                try:
-                    if hasattr(mcp_manager, 'unregister_session_tools'):
-                        mcp_manager.unregister_session_tools(session_id)
-                        logger.debug(f"已注销用户过期会话 {session_id} 的MCP工具")
-                except Exception as e:
-                    logger.warning(f"注销用户过期会话 {session_id} 的MCP工具失败: {e}")
-                
                 del self.sessions[session_id]
                 if session_id in self.session_timestamps:
                     del self.session_timestamps[session_id]
