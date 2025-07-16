@@ -23,11 +23,13 @@ export function LoadingStatus({
 }: LoadingStatusProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [cancelButtonShown, setCancelButtonShown] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
       setElapsedTime(0);
       setProgress(0);
+      setCancelButtonShown(false);
       return;
     }
 
@@ -35,6 +37,11 @@ export function LoadingStatus({
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       setElapsedTime(elapsed);
+
+      // 1秒后显示取消按钮，一旦显示就不再隐藏
+      if (elapsed > 1 && !cancelButtonShown) {
+        setCancelButtonShown(true);
+      }
 
       // 模拟进度条（基于预估时间）
       if (estimatedTime && showProgress) {
@@ -44,7 +51,7 @@ export function LoadingStatus({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isLoading, estimatedTime, showProgress]);
+  }, [isLoading, estimatedTime, showProgress, cancelButtonShown]);
 
   if (!isLoading) return null;
 
@@ -76,7 +83,31 @@ export function LoadingStatus({
     return `${minutes}分${seconds}秒`;
   };
 
-  const shouldShowCancel = elapsedTime > 1; // 1秒后显示取消按钮
+  // 根据当前阶段获取取消按钮的配置
+  const getCancelButtonConfig = () => {
+    // 按钮文字始终显示"取消"，但根据阶段触发不同逻辑
+    return {
+      text: "取消",
+      action: () => {
+        // 根据当前阶段执行不同的逻辑
+        switch (stage) {
+          case "thinking":
+            // 思考阶段：停止思考
+            onCancel?.();
+            break;
+          case "error":
+            // 错误阶段：也是取消，不是重试（已经有单独的重试按钮）
+            onCancel?.();
+            break;
+          default:
+            // 其他阶段：普通取消
+            onCancel?.();
+            break;
+        }
+      },
+    };
+  };
+
   const shouldShowRetry = stage === "error" || elapsedTime > 8; // 错误或超过8秒显示重试
 
   return (
@@ -113,9 +144,12 @@ export function LoadingStatus({
       </div>
 
       <div className={styles["loading-actions"]}>
-        {shouldShowCancel && onCancel && (
-          <button className={styles["action-button"]} onClick={onCancel}>
-            取消
+        {cancelButtonShown && (
+          <button
+            className={styles["action-button"]}
+            onClick={getCancelButtonConfig().action}
+          >
+            {getCancelButtonConfig().text}
           </button>
         )}
 
