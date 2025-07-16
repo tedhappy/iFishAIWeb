@@ -384,6 +384,7 @@ export function ChatAction(props: {
   text: string;
   icon: JSX.Element;
   onClick: () => void;
+  className?: string;
 }) {
   const iconRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
@@ -410,7 +411,11 @@ export function ChatAction(props: {
 
   return (
     <div
-      className={clsx(styles["chat-input-action"], "clickable")}
+      className={clsx(
+        styles["chat-input-action"],
+        "clickable",
+        props.className,
+      )}
       onClick={() => {
         props.onClick();
         setTimeout(updateWidth, 1);
@@ -587,6 +592,20 @@ export function ChatActions(props: {
   return (
     <div className={styles["chat-input-actions"]}>
       <>
+        <ChatAction
+          onClick={() => {
+            chatStore.updateTargetSession(session, (session) => {
+              session.deepThinkingEnabled = !session.deepThinkingEnabled;
+            });
+          }}
+          text={Locale.Chat.InputActions.DeepThinking}
+          icon={<BrainIcon />}
+          className={
+            session.deepThinkingEnabled
+              ? styles["chat-input-action-active"]
+              : ""
+          }
+        />
         {/* 隐藏立即显示按钮 - 用户要求不再使用该功能
         {couldStop && (
           <ChatAction

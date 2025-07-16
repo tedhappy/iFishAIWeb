@@ -92,6 +92,7 @@ export interface ChatSession {
   lastUpdate: number;
   lastSummarizeIndex: number;
   clearContextIndex?: number;
+  deepThinkingEnabled?: boolean; // 深度思考模式开关，默认为true
 
   mask: Mask;
 }
@@ -115,6 +116,7 @@ function createEmptySession(): ChatSession {
     },
     lastUpdate: Date.now(),
     lastSummarizeIndex: 0,
+    deepThinkingEnabled: true, // 默认开启深度思考模式
 
     mask: createEmptyMask(),
   };
@@ -764,6 +766,7 @@ export const useChatStore = createPersistStore(
               session_id: sessionId,
               message: content,
               file_paths: attachImages || [],
+              deep_thinking: session.deepThinkingEnabled, // 添加深度思考模式参数
             }),
           });
 

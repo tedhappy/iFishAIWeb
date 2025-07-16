@@ -20,17 +20,22 @@ class BaseAgent(ABC):
         dashscope.timeout = 30
         
         # 初始化qwen-agent
-        self.bot = self._init_agent()
+        self.bot = self._init_agent(enable_thinking=True)
+        # 标记当前思考模式状态
+        self.bot._thinking_enabled = True
     
-    def _init_agent(self) -> Assistant:
+    def _init_agent(self, enable_thinking: bool = True) -> Assistant:
         """初始化具体的Agent实例
         
         默认实现，子类可以重写以自定义配置
         
+        Args:
+            enable_thinking: 是否启用思考模式，默认为True
+            
         Returns:
             Assistant: 配置好的Assistant实例
         """
-        logger.info(f"[{self.session_id}] 开始初始化Agent")
+        logger.info(f"[{self.session_id}] 开始初始化Agent，思考模式: {enable_thinking}")
         
         # LLM配置
         llm_cfg = {
@@ -38,9 +43,9 @@ class BaseAgent(ABC):
             'api_key': os.getenv('ALIBABA_API_KEY'),
             'timeout': 30,
             'retry_count': 3,
-            # 启用思考模式配置
+            # 动态配置思考模式
             'generate_cfg': {
-                'enable_thinking': True,  # 启用Qwen3的思考模式
+                'enable_thinking': enable_thinking,  # 根据参数动态启用Qwen3的思考模式
             }
         }
         
@@ -306,11 +311,24 @@ class BaseAgent(ABC):
                 'session_id': self.session_id
             }
     
-    def chat_stream(self, user_input: str, file_path: str = None):
+    def chat_stream(self, user_input: str, file_path: str = None, deep_thinking: bool = True):
         """处理用户输入并返回流式响应"""
-        logger.info(f"[{self.session_id}] 开始处理流式聊天请求 - 输入长度: {len(user_input)}, 文件: {file_path}")
+        logger.info(f"[{self.session_id}] 开始处理流式聊天请求 - 输入长度: {len(user_input)}, 文件: {file_path}, 深度思考: {deep_thinking}")
         
         try:
+            # 如果当前Agent的思考模式设置与请求不匹配，重新初始化Agent
+            current_thinking_enabled = getattr(self.bot, '_thinking_enabled', True)
+            if current_thinking_enabled != deep_thinking:
+                logger.info(f"[{self.session_id}] 思考模式设置变更，重新初始化Agent: {current_thinking_enabled} -> {deep_thinking}")
+                # 保存当前消息历史
+                current_messages = self.messages.copy()
+                # 重新初始化Agent
+                self.bot = self._init_agent(enable_thinking=deep_thinking)
+                # 标记当前思考模式状态
+                self.bot._thinking_enabled = deep_thinking
+                # 恢复消息历史
+                self.messages = current_messages
+            
             # 构建消息
             if file_path:
                 message = {
@@ -340,18 +358,19 @@ class BaseAgent(ABC):
                 # 提取当前响应中的助手回复
                 for msg in resp:
                     if msg.get('role') == 'assistant':
-                        # 处理思考内容（reasoning_content）
-                        reasoning_content = msg.get('reasoning_content', '')
-                        if reasoning_content and len(reasoning_content) > last_reasoning_length:
-                            # 只发送新增的思考内容部分
-                            new_reasoning = reasoning_content[last_reasoning_length:]
-                            last_reasoning_length = len(reasoning_content)
-                            yield {
-                                "type": "chunk",
-                                "content": new_reasoning,
-                                "is_thinking": True,
-                                "session_id": self.session_id
-                            }
+                        # 处理思考内容（reasoning_content）- 仅在深度思考模式开启时输出
+                        if deep_thinking:
+                            reasoning_content = msg.get('reasoning_content', '')
+                            if reasoning_content and len(reasoning_content) > last_reasoning_length:
+                                # 只发送新增的思考内容部分
+                                new_reasoning = reasoning_content[last_reasoning_length:]
+                                last_reasoning_length = len(reasoning_content)
+                                yield {
+                                    "type": "chunk",
+                                    "content": new_reasoning,
+                                    "is_thinking": True,
+                                    "session_id": self.session_id
+                                }
                         
                         # 处理正常回复内容
                         content = msg.get('content', '')

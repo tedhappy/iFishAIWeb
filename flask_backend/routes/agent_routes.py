@@ -47,6 +47,7 @@ def chat_with_agent():
     message = data.get('message')
     file_paths = data.get('file_paths', [])  # 修改为file_paths以匹配前端
     file_path = data.get('file_path')  # 保持向后兼容
+    deep_thinking = data.get('deep_thinking', True)  # 新增深度思考模式参数，默认开启
     
     # 如果有file_paths就使用file_paths，否则使用file_path
     files = file_paths if file_paths else ([file_path] if file_path else [])
@@ -72,13 +73,13 @@ def chat_with_agent():
             # 使用Agent的流式聊天方法
             if files:
                 # 如果有文件，需要特殊处理
-                for chunk in agent.chat_stream(message, files[0]):
+                for chunk in agent.chat_stream(message, files[0], deep_thinking=deep_thinking):
                     yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                 # 手动更新会话时间戳并保存
                 session_manager.touch_session(session_id)
             else:
                 # 使用流式方法
-                for chunk in agent.chat_stream(message):
+                for chunk in agent.chat_stream(message, deep_thinking=deep_thinking):
                     yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                 # 更新会话时间戳
                 session_manager.touch_session(session_id)
