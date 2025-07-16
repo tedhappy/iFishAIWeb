@@ -1,6 +1,5 @@
 import React from "react";
 import styles from "./suggested-questions.module.scss";
-import LightningIcon from "../icons/lightning.svg";
 
 export interface SuggestedQuestion {
   id: string;
@@ -28,7 +27,7 @@ export function SuggestedQuestions({
     <div className={`${styles["suggested-questions"]} ${className}`}>
       {title && (
         <div className={styles["suggested-questions-title"]}>
-          <LightningIcon className={styles["title-icon"]} />
+          <span className={styles["title-icon"]}>💡</span>
           <span>{title}</span>
         </div>
       )}

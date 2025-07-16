@@ -1,44 +1,44 @@
 @import "../styles/animation.scss";
 
 .suggested-questions {
-  margin: 20px 0;
+  margin: 8px 0;
   animation: slide-in ease 0.3s;
 }
 
 .suggested-questions-title {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  font-size: 14px;
+  margin-bottom: 8px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--black);
   opacity: 0.8;
 
   .title-icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 6px;
-    opacity: 0.7;
+    font-size: 18px;
+    margin-right: 4px;
+    opacity: 0.8;
+    display: inline-block;
   }
 }
 
 .questions-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .question-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 6px 10px;
   background-color: var(--white);
   border: var(--border-in-light);
   border-radius: 10px;
   cursor: pointer;
   transition: all ease 0.2s;
-  font-size: 14px;
+  font-size: 12px;
   text-align: left;
   box-shadow: var(--card-shadow);
   position: relative;
@@ -83,22 +83,21 @@
 // 移动端适配
 @media only screen and (max-width: 600px) {
   .suggested-questions {
-    margin: 16px 0;
+    margin: 6px 0;
   }
 
   .question-item {
-    padding: 10px 14px;
-    font-size: 13px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .suggested-questions-title {
     font-size: 13px;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 
     .title-icon {
-      width: 14px;
-      height: 14px;
-      margin-right: 5px;
+      font-size: 14px;
+      margin-right: 4px;
     }
   }
 
