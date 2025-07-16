@@ -314,6 +314,37 @@
   .chat-body-title {
     text-align: center;
   }
+
+  .chat-input-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    
+    .chat-input-action {
+      flex: 0 0 auto;
+      min-width: auto;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 12px;
+      margin-bottom: 4px;
+      
+      .text {
+        padding-left: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      
+      .icon {
+        min-width: 14px;
+        svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+  }
 }
 
 .chat-message {

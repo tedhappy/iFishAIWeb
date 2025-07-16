@@ -1,9 +1,9 @@
 version: "3.9"
 services:
-  chatgpt-next-web:
+  ifishaiweb:
     profiles: [ "no-proxy" ]
-    container_name: chatgpt-next-web
-    image: yidadaa/chatgpt-next-web
+    container_name: ifishaiweb
+    image: tedhappy/ifishaiweb
     ports:
       - 3000:3000
     environment:
@@ -18,10 +18,10 @@ services:
       - DISABLE_FAST_LINK=$DISABLE_FAST_LINK
       - OPENAI_SB=$OPENAI_SB
 
-  chatgpt-next-web-proxy:
+  ifishaiweb-proxy:
     profiles: [ "proxy" ]
-    container_name: chatgpt-next-web-proxy
-    image: yidadaa/chatgpt-next-web
+    container_name: ifishaiweb-proxy
+    image: tedhappy/ifishaiweb
     ports:
       - 3000:3000
     environment:
