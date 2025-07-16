@@ -1903,7 +1903,9 @@ function Chat() {
                                     ? 10
                                     : message.loadingStage === "processing"
                                       ? 15
-                                      : 30
+                                      : message.loadingStage === "thinking"
+                                        ? 20
+                                        : 30
                                 }
                                 onCancel={() => {
                                   onUserStop(message.id);

@@ -58,7 +58,12 @@ export type ChatMessage = RequestMessage & {
   tools?: ChatMessageTool[];
   audio_url?: string;
   isMcpResponse?: boolean;
-  loadingStage?: "connecting" | "processing" | "generating" | "error";
+  loadingStage?:
+    | "connecting"
+    | "processing"
+    | "generating"
+    | "thinking"
+    | "error";
 };
 
 export function createMessage(override: Partial<ChatMessage>): ChatMessage {
@@ -913,6 +918,11 @@ export const useChatStore = createPersistStore(
         botMessage.isError = false;
         botMessage.loadingStage = "generating";
 
+        // 添加思考内容和正式回答的分离
+        let thinkingContent = "";
+        let formalContent = "";
+        let isThinking = false;
+
         // 更新会话以显示空的机器人消息
         get().updateTargetSession(session, (session) => {
           session.messages = session.messages.concat();
@@ -953,12 +963,34 @@ export const useChatStore = createPersistStore(
 
                   // 打印每次接收到的流式响应数据
                   logger.log(
-                    `[Agent流式响应] 接收数据类型: ${data.type}, 内容: ${data.content ? `"${data.content.substring(0, 100)}${data.content.length > 100 ? "..." : ""}"` : "无内容"}, 会话ID: ${sessionId}`,
+                    `[Agent流式响应] 接收数据类型: ${data.type}, 内容: ${data.content ? `"${data.content.substring(0, 100)}${data.content.length > 100 ? "..." : ""}"` : "无内容"}, 是否思考: ${data.is_thinking || false}, 会话ID: ${sessionId}`,
                   );
 
                   if (data.type === "chunk" && data.content) {
-                    fullResponse += data.content;
-                    botMessage.content = fullResponse;
+                    if (data.is_thinking) {
+                      // 处理思考内容
+                      thinkingContent += data.content;
+                      isThinking = true;
+                      botMessage.loadingStage = "thinking";
+
+                      // 思考过程中只显示思考内容，不显示「💬 回答：」
+                      botMessage.content = `**🤔 正在思考：**\n\n${thinkingContent}`;
+                    } else {
+                      // 处理正式回答内容
+                      formalContent += data.content;
+                      if (isThinking) {
+                        botMessage.loadingStage = "generating";
+                      }
+
+                      // 如果有思考内容，显示完整格式；否则只显示回答
+                      if (thinkingContent) {
+                        botMessage.content = `**🤔 思考过程：**\n\n${thinkingContent}\n\n---\n\n**💬 回答：**\n\n${formalContent}`;
+                      } else {
+                        botMessage.content = formalContent;
+                      }
+                    }
+
+                    fullResponse = botMessage.content;
 
                     // 实时更新UI
                     get().updateTargetSession(session, (session) => {

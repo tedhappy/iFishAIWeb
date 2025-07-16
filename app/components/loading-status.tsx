@@ -4,7 +4,7 @@ import styles from "./loading-status.module.scss";
 
 export interface LoadingStatusProps {
   isLoading: boolean;
-  stage?: "connecting" | "processing" | "generating" | "error";
+  stage?: "connecting" | "processing" | "generating" | "thinking" | "error";
   message?: string;
   estimatedTime?: number;
   onCancel?: () => void;
@@ -56,6 +56,8 @@ export function LoadingStatus({
         return "正在连接服务器...";
       case "processing":
         return "正在处理请求...";
+      case "thinking":
+        return "正在努力思考...";
       case "generating":
         return "正在生成回复...";
       case "error":

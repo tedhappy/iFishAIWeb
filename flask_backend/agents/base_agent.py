@@ -38,6 +38,10 @@ class BaseAgent(ABC):
             'api_key': os.getenv('ALIBABA_API_KEY'),
             'timeout': 30,
             'retry_count': 3,
+            # 启用思考模式配置
+            'generate_cfg': {
+                'enable_thinking': True,  # 启用Qwen3的思考模式
+            }
         }
         
         logger.info(f"[{self.session_id}] LLM配置完成 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}")
@@ -326,6 +330,7 @@ class BaseAgent(ABC):
             response = []
             response_count = 0
             last_content_length = 0  # 跟踪上次发送的内容长度
+            last_reasoning_length = 0  # 跟踪上次发送的思考内容长度
             
             for resp in self.bot.run(self.messages):
                 response = resp
@@ -335,15 +340,30 @@ class BaseAgent(ABC):
                 # 提取当前响应中的助手回复
                 for msg in resp:
                     if msg.get('role') == 'assistant':
+                        # 处理思考内容（reasoning_content）
+                        reasoning_content = msg.get('reasoning_content', '')
+                        if reasoning_content and len(reasoning_content) > last_reasoning_length:
+                            # 只发送新增的思考内容部分
+                            new_reasoning = reasoning_content[last_reasoning_length:]
+                            last_reasoning_length = len(reasoning_content)
+                            yield {
+                                "type": "chunk",
+                                "content": new_reasoning,
+                                "is_thinking": True,
+                                "session_id": self.session_id
+                            }
+                        
+                        # 处理正常回复内容
                         content = msg.get('content', '')
                         if content and len(content) > last_content_length:
                             # 只发送新增的内容部分
                             new_content = content[last_content_length:]
                             last_content_length = len(content)
                             yield {
-                                'type': 'chunk',
-                                'content': new_content,
-                                'session_id': self.session_id
+                                "type": "chunk",
+                                "content": new_content,
+                                "is_thinking": False,
+                                "session_id": self.session_id
                             }
             
             logger.info(f"[{self.session_id}] qwen-agent流式调用完成，响应数量: {len(response)}")
