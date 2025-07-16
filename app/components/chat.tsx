@@ -8,6 +8,12 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  SuggestedQuestions,
+  generateDefaultQuestions,
+  generateRelatedQuestions,
+  SuggestedQuestion,
+} from "./suggested-questions";
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
@@ -998,6 +1004,9 @@ function Chat() {
   const fontFamily = config.fontFamily;
 
   const [showExport, setShowExport] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<
+    SuggestedQuestion[]
+  >([]);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
@@ -1122,6 +1131,21 @@ function Chat() {
     setPromptHints([]);
     if (!isMobileScreen) inputRef.current?.focus();
     setAutoScroll(true);
+
+    // 生成相关问题
+    setTimeout(() => {
+      const relatedQuestions = generateRelatedQuestions(userInput);
+      setSuggestedQuestions(relatedQuestions);
+    }, 1000);
+  };
+
+  // 处理推荐问题点击
+  const handleSuggestedQuestionClick = (question: string) => {
+    setUserInput(question);
+    // 自动提交问题
+    setTimeout(() => {
+      doSubmit(question);
+    }, 100);
   };
 
   const onPromptSelect = (prompt: RenderPrompt) => {
@@ -1172,6 +1196,15 @@ function Chat() {
         session.mask.modelConfig = { ...config.modelConfig };
       }
     });
+
+    // 初始化推荐问题
+    if (session.messages.length === 0) {
+      const defaultQuestions = generateDefaultQuestions();
+      setSuggestedQuestions(defaultQuestions);
+    } else {
+      // 如果有消息，清空推荐问题，等待用户提问后生成
+      setSuggestedQuestions([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
@@ -2007,6 +2040,13 @@ function Chat() {
                     </Fragment>
                   );
                 })}
+              {/* 推荐问题组件 */}
+              {suggestedQuestions.length > 0 && (
+                <SuggestedQuestions
+                  questions={suggestedQuestions}
+                  onQuestionClick={handleSuggestedQuestionClick}
+                />
+              )}
             </div>
             <div className={styles["chat-input-panel"]}>
               <PromptHints

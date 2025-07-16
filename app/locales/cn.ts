@@ -91,6 +91,11 @@ const cn = {
       SaveAs: "存为面具",
     },
     IsContext: "预设提示词",
+    SuggestedQuestions: {
+      Title: "相关问题",
+      DefaultTitle: "推荐问题",
+      Loading: "正在生成推荐问题...",
+    },
     ShortcutKey: {
       Title: "键盘快捷方式",
       newChat: "打开新聊天",
