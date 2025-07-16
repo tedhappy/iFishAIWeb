@@ -110,8 +110,12 @@ if app.config.get('ENABLE_MCP', 'true').lower() == 'true':
 else:
     logger.info("MCP功能已禁用")
 
-# 全局会话管理器
-session_manager = SessionManager()
+# 全局会话管理器 - 确保sessions.json文件在flask_backend目录下生成
+session_file_path = os.path.join(os.path.dirname(__file__), 'sessions.json')
+session_manager = SessionManager(session_file=session_file_path)
+
+# 将会话管理器添加到应用上下文中，供其他模块使用
+app.session_manager = session_manager
 
 @app.route('/flask/health', methods=['GET'])
 def health_check():

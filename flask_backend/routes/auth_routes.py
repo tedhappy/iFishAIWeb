@@ -1,17 +1,68 @@
 from flask import Blueprint, request, jsonify
 import uuid
 import time
+import threading
+from utils.logger import logger
 
 auth_bp = Blueprint('auth', __name__)
 
 # 简单的用户会话存储（生产环境应使用数据库）
 user_sessions = {}
+_cleanup_thread = None
+_stop_cleanup = False
+
+def _start_session_cleanup():
+    """启动会话清理线程"""
+    global _cleanup_thread, _stop_cleanup
+    
+    def cleanup_expired_sessions():
+        """清理过期会话的后台线程"""
+        while not _stop_cleanup:
+            try:
+                current_time = time.time()
+                expired_sessions = []
+                
+                for session_token, user_session in user_sessions.items():
+                    if current_time - user_session['last_activity'] > 24 * 3600:  # 24小时过期
+                        expired_sessions.append(session_token)
+                
+                for session_token in expired_sessions:
+                    if session_token in user_sessions:
+                        del user_sessions[session_token]
+                
+                if expired_sessions:
+                    logger.info(f"清理了 {len(expired_sessions)} 个过期用户会话")
+                
+                # 每小时检查一次
+                for _ in range(3600):
+                    if _stop_cleanup:
+                        break
+                    time.sleep(1)
+            except Exception as e:
+                logger.error(f"用户会话清理线程异常: {str(e)}")
+                time.sleep(300)  # 出错后等待5分钟再重试
+    
+    if not _cleanup_thread or not _cleanup_thread.is_alive():
+        _stop_cleanup = False
+        _cleanup_thread = threading.Thread(target=cleanup_expired_sessions, daemon=True)
+        _cleanup_thread.start()
+        logger.info("用户会话清理线程已启动")
+
+# 启动清理线程
+_start_session_cleanup()
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
     """用户登录/注册"""
     data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求数据格式错误'}), 400
+    
     username = data.get('username')
+    
+    # 基本输入验证（移除严格长度限制）
+    if username and not isinstance(username, str):
+        return jsonify({'error': '用户名格式错误'}), 400
     
     if not username:
         # 如果没有用户名，生成匿名用户
@@ -41,7 +92,14 @@ def login():
 def logout():
     """用户登出"""
     data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求数据格式错误'}), 400
+    
     session_token = data.get('session_token')
+    
+    # 输入验证
+    if not session_token or not isinstance(session_token, str):
+        return jsonify({'error': '缺少有效的session_token参数'}), 400
     
     if session_token and session_token in user_sessions:
         del user_sessions[session_token]
@@ -59,7 +117,14 @@ def logout():
 def verify_session():
     """验证会话有效性"""
     data = request.get_json()
+    if not data:
+        return jsonify({'error': '请求数据格式错误'}), 400
+    
     session_token = data.get('session_token')
+    
+    # 输入验证
+    if not session_token or not isinstance(session_token, str):
+        return jsonify({'error': '缺少有效的session_token参数'}), 400
     
     if not session_token or session_token not in user_sessions:
         return jsonify({

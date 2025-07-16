@@ -31,8 +31,13 @@ class SessionManager:
         # Logger已通过导入的logger模块统一管理
         self._cleanup_thread = None
         self._stop_cleanup = False
+        self._save_thread = None
+        self._stop_save = False
+        self._last_save_time = time.time()
+        self._save_interval = 60  # 每60秒保存一次时间戳更新
         self._load_sessions()
         self._start_cleanup_thread()
+        self._start_save_thread()
     
     def create_session(self, user_id: str, mask_id: str, agent_type: str = 'default', session_uuid: str = None, force_new: bool = False) -> str:
         """创建新的Agent会话（线程安全）"""
@@ -127,10 +132,7 @@ class SessionManager:
                 self._save_sessions()
                 logger.info(f"清空用户 {user_id} 的 {len(sessions_to_remove)} 个会话")
     
-    def get_session_count(self) -> int:
-        """获取当前会话总数（线程安全）"""
-        with self._lock:
-            return len(self.sessions)
+
     
     def register_agent_type(self, agent_type: str, agent_class):
         """注册新的Agent类型（线程安全）"""
@@ -138,12 +140,27 @@ class SessionManager:
             self.agent_types[agent_type] = agent_class
     
     def _load_sessions(self):
-        """从文件加载会话信息（线程安全）"""
+        """从文件加载会话信息（线程安全，带安全检查）"""
         with self._lock:
             try:
                 if os.path.exists(self.session_file):
+                    # 检查文件大小，防止加载过大的文件
+                    file_size = os.path.getsize(self.session_file)
+                    max_file_size = 50 * 1024 * 1024  # 50MB限制
+                    if file_size > max_file_size:
+                        logger.error(f"会话文件过大 ({file_size} bytes)，跳过加载")
+                        return
+                    
                     with open(self.session_file, 'r', encoding='utf-8') as f:
-                        session_data = json.load(f)
+                        try:
+                            session_data = json.load(f)
+                            # 验证JSON结构
+                            if not isinstance(session_data, dict):
+                                logger.error("会话文件格式错误：根对象必须是字典")
+                                return
+                        except json.JSONDecodeError as e:
+                            logger.error(f"会话文件JSON格式错误: {str(e)}")
+                            return
                         
                     current_time = time.time()
                     for session_id, data in session_data.items():
@@ -177,8 +194,11 @@ class SessionManager:
                 logger.error(f"加载会话文件失败: {str(e)}")
     
     def _save_sessions(self):
-        """保存会话信息到文件（线程安全）"""
+        """保存会话信息到文件（线程安全，原子写入）"""
         # 注意：此方法应该在已获得锁的情况下调用
+        import tempfile
+        import shutil
+        
         try:
             session_data = {}
             for session_id, agent in self.sessions.items():
@@ -204,7 +224,9 @@ class SessionManager:
                     # 保存历史消息（如果Agent支持）
                     if hasattr(agent, 'get_history'):
                         try:
-                            session_info['history'] = agent.get_history()
+                            history = agent.get_history()
+                            # 移除历史消息大小限制
+                            session_info['history'] = history
                         except Exception as e:
                             logger.warning(f"获取会话历史失败 {session_id}: {str(e)}")
                     
@@ -212,10 +234,33 @@ class SessionManager:
                 except Exception as e:
                     logger.error(f"序列化会话失败 {session_id}: {str(e)}")
             
-            with open(self.session_file, 'w', encoding='utf-8') as f:
-                json.dump(session_data, f, ensure_ascii=False, indent=2)
+            # 使用原子写入：先写入临时文件，然后重命名
+            temp_file = None
+            try:
+                # 创建临时文件在同一目录下
+                session_dir = os.path.dirname(os.path.abspath(self.session_file))
+                with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', 
+                                               dir=session_dir, delete=False, 
+                                               suffix='.tmp') as f:
+                    temp_file = f.name
+                    json.dump(session_data, f, ensure_ascii=False, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())  # 强制写入磁盘
                 
-            logger.info(f"已保存 {len(session_data)} 个会话")
+                # 原子重命名
+                shutil.move(temp_file, self.session_file)
+                temp_file = None  # 重命名成功，不需要清理
+                
+                logger.info(f"已保存 {len(session_data)} 个会话")
+            except Exception as e:
+                # 清理临时文件
+                if temp_file and os.path.exists(temp_file):
+                    try:
+                        os.unlink(temp_file)
+                    except:
+                        pass
+                raise e
+                
         except Exception as e:
             logger.error(f"保存会话文件失败: {str(e)}")
     
@@ -239,6 +284,32 @@ class SessionManager:
         self._cleanup_thread.start()
         logger.info("会话清理线程已启动")
     
+    def _start_save_thread(self):
+        """启动定期保存线程"""
+        def periodic_save():
+            """定期保存会话数据的后台线程"""
+            while not self._stop_save:
+                try:
+                    current_time = time.time()
+                    # 检查是否需要保存
+                    if current_time - self._last_save_time >= self._save_interval:
+                        with self._lock:
+                            self._save_sessions()
+                            self._last_save_time = current_time
+                    
+                    # 每10秒检查一次
+                    for _ in range(10):
+                        if self._stop_save:
+                            break
+                        time.sleep(1)
+                except Exception as e:
+                    logger.error(f"定期保存线程异常: {str(e)}")
+                    time.sleep(30)  # 出错后等待30秒再重试
+        
+        self._save_thread = threading.Thread(target=periodic_save, daemon=True)
+        self._save_thread.start()
+        logger.info("定期保存线程已启动")
+    
     def _cleanup_expired_sessions(self):
         """清理过期的会话"""
         with self._lock:
@@ -260,13 +331,14 @@ class SessionManager:
                 self._save_sessions()
                 logger.info(f"清理了 {len(expired_sessions)} 个过期会话")
     
-    def touch_session(self, session_id: str):
+    def touch_session(self, session_id: str, save_immediately: bool = False):
         """更新会话活跃时间"""
         with self._lock:
             if session_id in self.sessions:
                 self.session_timestamps[session_id] = time.time()
-                # 立即保存更新的时间戳
-                self._save_sessions()
+                # 只有在明确要求时才立即保存，否则依赖定期保存
+                if save_immediately:
+                    self._save_sessions()
                 return True
             return False
     
@@ -331,11 +403,25 @@ class SessionManager:
             return len(expired_sessions)
     
     def stop_cleanup_thread(self):
-        """停止清理线程（用于应用关闭时）"""
+        """停止清理和保存线程（用于应用关闭时）"""
         self._stop_cleanup = True
+        self._stop_save = True
+        
         if self._cleanup_thread and self._cleanup_thread.is_alive():
             self._cleanup_thread.join(timeout=5)
             logger.info("会话清理线程已停止")
+        
+        if self._save_thread and self._save_thread.is_alive():
+            self._save_thread.join(timeout=5)
+            logger.info("定期保存线程已停止")
+        
+        # 最后保存一次会话数据
+        try:
+            with self._lock:
+                self._save_sessions()
+                logger.info("应用关闭前最后保存完成")
+        except Exception as e:
+            logger.error(f"应用关闭前保存失败: {str(e)}")
     
     def chat_with_agent(self, session_id: str, message: str) -> str:
         """与Agent对话（线程安全）"""
