@@ -426,3 +426,7 @@ class BaseAgent(ABC):
     def load_history(self, messages: List[Dict[str, Any]]):
         """加载历史消息"""
         self.messages = messages
+    
+    def get_system_prompt(self) -> str:
+        """获取系统提示词"""
+        return self.system_prompt if hasattr(self, 'system_prompt') else ''

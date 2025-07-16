@@ -8,12 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  SuggestedQuestions,
-  generateDefaultQuestions,
-  generateRelatedQuestions,
-  SuggestedQuestion,
-} from "./suggested-questions";
+import SuggestedQuestions from "./suggested-questions";
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
@@ -1004,9 +999,11 @@ function Chat() {
   const fontFamily = config.fontFamily;
 
   const [showExport, setShowExport] = useState(false);
-  const [suggestedQuestions, setSuggestedQuestions] = useState<
-    SuggestedQuestion[]
-  >([]);
+  const [showSuggestedQuestions, setShowSuggestedQuestions] = useState(false);
+  const [suggestedQuestionsType, setSuggestedQuestionsType] = useState<
+    "default" | "related"
+  >("default");
+  const [lastUserMessage, setLastUserMessage] = useState<string>("");
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
@@ -1134,8 +1131,9 @@ function Chat() {
 
     // 生成相关问题
     setTimeout(() => {
-      const relatedQuestions = generateRelatedQuestions(userInput);
-      setSuggestedQuestions(relatedQuestions);
+      setLastUserMessage(userInput);
+      setSuggestedQuestionsType("related");
+      setShowSuggestedQuestions(true);
     }, 1000);
   };
 
@@ -1199,11 +1197,12 @@ function Chat() {
 
     // 初始化推荐问题
     if (session.messages.length === 0) {
-      const defaultQuestions = generateDefaultQuestions();
-      setSuggestedQuestions(defaultQuestions);
+      setSuggestedQuestionsType("default");
+      setLastUserMessage("");
+      setShowSuggestedQuestions(true);
     } else {
       // 如果有消息，清空推荐问题，等待用户提问后生成
-      setSuggestedQuestions([]);
+      setShowSuggestedQuestions(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
@@ -2041,10 +2040,12 @@ function Chat() {
                   );
                 })}
               {/* 推荐问题组件 */}
-              {suggestedQuestions.length > 0 && (
+              {showSuggestedQuestions && (
                 <SuggestedQuestions
-                  questions={suggestedQuestions}
                   onQuestionClick={handleSuggestedQuestionClick}
+                  type={suggestedQuestionsType}
+                  userMessage={lastUserMessage}
+                  sessionId={(session as any).agentSessionId}
                 />
               )}
             </div>
