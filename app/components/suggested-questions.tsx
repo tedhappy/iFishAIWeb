@@ -163,7 +163,9 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
           <span className={styles["title-icon"]}>💡</span>
           <span>相关问题</span>
         </div>
-        <div className={styles["questions-container"]}>正在生成推荐问题...</div>
+        <div className={styles["loading-text"]}>
+          正在生成推荐问题，也可以直接输入问题
+        </div>
       </div>
     );
   }
