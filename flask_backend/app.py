@@ -65,6 +65,46 @@ if app.config.get('ENABLE_MCP', 'true').lower() == 'true':
     logger.info("正在预注册默认MCP工具...")
     if mcp_manager.pre_register_default_tools():
         logger.info("默认MCP工具预注册成功")
+        
+        # 在应用启动时就完成MCP工具的完整初始化
+        logger.info("正在初始化MCP工具实例...")
+        try:
+            from qwen_agent.tools.mcp_manager import MCPToolFactory
+            
+            # 获取可用的工具名称
+            available_tools = mcp_manager.get_available_tool_names()
+            if available_tools:
+                logger.info(f"发现可用MCP工具: {available_tools}")
+                
+                # 创建MCP管理器实例并初始化工具
+                manager = MCPToolFactory.create_manager()
+                
+                # 获取默认MCP配置并初始化工具实例
+                default_configs = mcp_manager.get_default_mcp_config()
+                if default_configs:
+                    # 使用第一个配置进行初始化
+                    config = default_configs[0]
+                    logger.info(f"使用配置初始化MCP工具: {list(config.get('mcpServers', {}).keys())}")
+                    
+                    # 调用真正的MCP工具初始化
+                    tool_instances = manager.initConfig(config)
+                    if tool_instances:
+                        # 注册工具实例到单例管理器
+                        if mcp_manager.register_mcp_tools(available_tools, tool_instances):
+                            logger.info(f"MCP工具实例初始化成功，工具数量: {len(tool_instances)}")
+                        else:
+                            logger.error("MCP工具实例注册失败")
+                    else:
+                        logger.error("MCP工具实例初始化返回空列表")
+                else:
+                    logger.warning("没有找到默认MCP配置")
+            else:
+                logger.warning("没有发现可用的MCP工具")
+                
+        except Exception as e:
+            logger.error(f"MCP工具实例初始化失败: {e}")
+            import traceback
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
     else:
         logger.error(f"默认MCP工具预注册失败: {mcp_manager.get_load_error()}")
 else:

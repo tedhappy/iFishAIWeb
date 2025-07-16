@@ -92,55 +92,41 @@ class BaseAgent(ABC):
     def get_default_mcp_tools(self) -> List[Dict[str, Any]]:
         """获取默认的MCP工具配置
         
-        通过MCPToolFactory创建管理器实例，支持依赖注入或使用默认单例
+        直接使用已经在应用启动时初始化好的MCP工具实例
         
         Returns:
             List[Dict[str, Any]]: MCP工具配置列表
         """
-        logger.info(f"[{self.session_id}] [MCP工具初始化] 开始获取MCP工具配置")
+        logger.info(f"[{self.session_id}] [MCP工具获取] 开始获取已初始化的MCP工具")
         
         try:
-            # 使用MCPToolFactory创建管理器实例
-            from qwen_agent.tools.mcp_manager import MCPToolFactory
-            
-            # 获取自定义MCP配置（如果有）
-            mcp_config = self.get_mcp_config()
-            logger.info(f"[{self.session_id}] [MCP工具初始化] 创建MCP管理器实例，自定义配置: {mcp_config is not None}")
-            manager = MCPToolFactory.create_manager(mcp_config)
-            
             # 检查MCP工具是否已预注册
             if not mcp_manager.is_initialized():
-                logger.warning(f"[{self.session_id}] [MCP工具初始化] MCP工具尚未预注册")
+                logger.warning(f"[{self.session_id}] [MCP工具获取] MCP工具尚未预注册")
                 return []
             
             # 获取可用的工具名称
             available_tools = mcp_manager.get_available_tool_names()
             if not available_tools:
-                logger.warning(f"[{self.session_id}] [MCP工具初始化] 没有可用的MCP工具")
+                logger.warning(f"[{self.session_id}] [MCP工具获取] 没有可用的MCP工具")
                 return []
             
-            logger.info(f"[{self.session_id}] [MCP工具初始化] 发现可用工具: {available_tools}")
+            logger.info(f"[{self.session_id}] [MCP工具获取] 发现可用工具: {available_tools}")
             
-            # 获取工具配置
-            tool_configs = mcp_manager.get_mcp_tools()
-            logger.info(f"[{self.session_id}] [MCP工具初始化] 获取工具配置，数量: {len(tool_configs)}")
-            
-            # 通过单例接口注册工具实例（内置重复检查，若已注册则直接返回成功）
-            if mcp_manager.register_mcp_tools(available_tools, tool_configs):
-                logger.info(f"[{self.session_id}] [MCP工具初始化] MCP工具注册成功")
-                # 查询并返回已注册的工具实例
-                registered_tools = mcp_manager.query_mcp_tools(available_tools)
-                if registered_tools is not None:
-                    logger.info(f"[{self.session_id}] [MCP工具初始化] 获取MCP工具实例成功: {available_tools}")
-                    return registered_tools
-                else:
-                    logger.error(f"[{self.session_id}] [MCP工具初始化] 注册成功但查询失败")
-                    return tool_configs
+            # 直接查询已注册的工具实例（应该在应用启动时已经初始化）
+            registered_tools = mcp_manager.query_mcp_tools(available_tools)
+            if registered_tools is not None:
+                logger.info(f"[{self.session_id}] [MCP工具获取] 获取已初始化的MCP工具实例成功，数量: {len(registered_tools)}")
+                return registered_tools
             else:
-                logger.error(f"[{self.session_id}] [MCP工具初始化] MCP工具实例注册失败")
-                return []
+                logger.warning(f"[{self.session_id}] [MCP工具获取] 工具实例尚未初始化，返回配置")
+                # 如果实例还没有初始化，返回配置（向后兼容）
+                tool_configs = mcp_manager.get_mcp_tools()
+                logger.info(f"[{self.session_id}] [MCP工具获取] 返回工具配置，数量: {len(tool_configs)}")
+                return tool_configs
+                
         except Exception as e:
-            logger.error(f"[{self.session_id}] [MCP工具初始化] 获取MCP工具失败: {e}")
+            logger.error(f"[{self.session_id}] [MCP工具获取] 获取MCP工具失败: {e}")
             return []
     
     def get_enhanced_function_list(self) -> List[Dict[str, Any]]:
@@ -230,21 +216,33 @@ class BaseAgent(ABC):
         """从工具配置中提取工具名称
         
         Args:
-            tool: 工具配置字典
+            tool: 工具配置字典或工具实例
             
         Returns:
             str: 工具名称，如果无法提取则返回空字符串
         """
-        if not isinstance(tool, dict):
-            return ''
+        # 处理MCP工具实例（通过register_tool装饰器创建的工具类）
+        if hasattr(tool, '__class__') and hasattr(tool.__class__, '__name__'):
+            class_name = tool.__class__.__name__
+            # MCP工具类名格式通常是 '{register_name}_Class'
+            if class_name.endswith('_Class'):
+                return class_name[:-6]  # 移除 '_Class' 后缀
+            # 如果工具有name属性，优先使用
+            if hasattr(tool, 'name'):
+                return getattr(tool, 'name')
+            return class_name
         
-        # 处理MCP工具格式
-        if 'mcpServers' in tool:
-            server_names = list(tool['mcpServers'].keys())
-            return server_names[0] if server_names else ''
+        # 处理字典格式的工具配置
+        if isinstance(tool, dict):
+            # 处理MCP工具配置格式
+            if 'mcpServers' in tool:
+                server_names = list(tool['mcpServers'].keys())
+                return server_names[0] if server_names else ''
+            
+            # 处理其他工具格式
+            return tool.get('name', tool.get('function_name', ''))
         
-        # 处理其他工具格式
-        return tool.get('name', tool.get('function_name', ''))
+        return ''
     
     def chat(self, user_input: str, file_path: str = None) -> Dict[str, Any]:
         """处理用户输入并返回响应"""

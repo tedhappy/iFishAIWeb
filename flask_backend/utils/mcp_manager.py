@@ -61,9 +61,6 @@ class MCPManager:
     def get_default_mcp_config(self) -> List[Dict[str, Any]]:
         """获取默认MCP配置
         
-        基于assistant_bot.py中的配置，提供标准的MCP服务器配置
-        只保留高德地图和tavily这两个重要的MCP工具
-        
         Returns:
             List[Dict[str, Any]]: MCP配置列表
         """
@@ -77,31 +74,10 @@ class MCPManager:
                 "bing-cn-mcp-server": {
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/b9870e09875547/sse"
-                }
-            }
-        }]
-    
-    def get_full_mcp_config(self) -> List[Dict[str, Any]]:
-        """获取完整MCP配置
-        
-        包含所有可用的MCP服务器
-        
-        Returns:
-            List[Dict[str, Any]]: 完整MCP配置列表
-        """
-        return [{
-            "mcpServers": {
-                "amap-maps": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/acbe007a6c2c40/sse"
                 },
                 "fetch": {
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/d0d14b5f47b345/sse"
-                },
-                "bing-cn-mcp-server": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/be9ed9ccc46848/sse"
                 },
                 "12306-mcp": {
                     "type": "sse",
@@ -110,6 +86,14 @@ class MCPManager:
                 "tavily-mcp": {
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/7214e0e509b141/sse"
+                },
+                "ModelScope-Image-Generation-MCP": {
+                    "type": "sse",
+                    "url": "https://mcp.api-inference.modelscope.net/eef5f8c388d047/sse"
+                },
+                "MiniMax-MCP": {
+                    "type": "sse",
+                    "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
                 }
             }
         }]
