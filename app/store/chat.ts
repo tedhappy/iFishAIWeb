@@ -99,11 +99,13 @@ export interface ChatSession {
     default?: {
       questions: Array<{ id: string; text: string }>;
       timestamp: number;
+      sessionId?: string; // 会话ID，用于缓存验证
     };
     related?: {
       questions: Array<{ id: string; text: string }>;
       timestamp: number;
       userMessage: string; // 关联的用户消息
+      sessionId?: string; // 会话ID，用于缓存验证
     };
   };
 

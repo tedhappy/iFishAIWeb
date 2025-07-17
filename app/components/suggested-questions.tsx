@@ -23,6 +23,7 @@ interface SuggestedQuestionsProps {
   agentType?: string; // Agent类型，用于获取对应的推荐问题
   preloadOnly?: boolean; // 仅预加载，不显示组件
   onPreloadComplete?: (questions: Question[]) => void; // 预加载完成回调
+  disableGeneration?: boolean; // 禁用自动生成，只使用缓存
 }
 
 // 调用后端API生成推荐问题
@@ -231,6 +232,124 @@ function isCacheValid(timestamp: number): boolean {
   return Date.now() - timestamp < CACHE_EXPIRE_TIME;
 }
 
+// 统一的缓存验证函数
+function validateCache(
+  cache: any,
+  sessionId: string,
+  userMessage?: string,
+): boolean {
+  if (!cache) {
+    return false;
+  }
+
+  // 检查时间戳有效性
+  if (!isCacheValid(cache.timestamp)) {
+    return false;
+  }
+
+  // 检查问题数组有效性
+  if (
+    !cache.questions ||
+    !Array.isArray(cache.questions) ||
+    cache.questions.length === 0
+  ) {
+    return false;
+  }
+
+  // 检查会话ID匹配（如果存在）
+  if (cache.sessionId && cache.sessionId !== sessionId) {
+    return false;
+  }
+
+  // 对于相关问题类型，检查用户消息匹配
+  if (userMessage !== undefined && cache.userMessage !== userMessage) {
+    return false;
+  }
+
+  return true;
+}
+
+// 清理过期缓存
+function clearExpiredCache(chatStore: any, session: any) {
+  logger.debug(
+    `[推荐问题缓存] 开始清理过期缓存 - 会话ID: ${session?.id || "unknown"}`,
+  );
+
+  if (!session?.id) {
+    logger.error(
+      `[推荐问题缓存] 无效的会话对象，无法清理缓存 - 会话ID: ${session?.id || "unknown"}`,
+    );
+    return;
+  }
+
+  try {
+    chatStore.updateTargetSession(session, (session: any) => {
+      if (!session.suggestedQuestions) {
+        logger.debug(
+          `[推荐问题缓存] 无缓存对象需要清理 - 会话ID: ${session.id}`,
+        );
+        return;
+      }
+
+      let clearedCount = 0;
+      let invalidCacheCount = 0;
+      const types = ["default", "related"] as const;
+
+      types.forEach((type) => {
+        const cache = session.suggestedQuestions[type];
+        if (cache && !validateCache(cache, session.id)) {
+          // 详细检查失败原因用于日志记录
+          const isExpired = !isCacheValid(cache.timestamp);
+          const isInvalid =
+            !cache.questions ||
+            !Array.isArray(cache.questions) ||
+            cache.questions.length === 0;
+          const sessionMismatch =
+            cache.sessionId && cache.sessionId !== session.id;
+
+          delete session.suggestedQuestions[type];
+          clearedCount++;
+
+          if (isExpired) {
+            logger.debug(
+              `[推荐问题缓存] 清理过期缓存 - 会话ID: ${session.id}, 类型: ${type}`,
+            );
+          } else if (isInvalid) {
+            logger.debug(
+              `[推荐问题缓存] 清理无效缓存 - 会话ID: ${session.id}, 类型: ${type}`,
+            );
+            invalidCacheCount++;
+          } else if (sessionMismatch) {
+            logger.debug(
+              `[推荐问题缓存] 清理会话ID不匹配的缓存 - 会话ID: ${session.id}, 缓存会话ID: ${cache.sessionId}, 类型: ${type}`,
+            );
+          }
+        }
+      });
+
+      // 如果所有缓存都被清理，删除整个缓存对象
+      if (Object.keys(session.suggestedQuestions).length === 0) {
+        delete session.suggestedQuestions;
+        logger.debug(`[推荐问题缓存] 删除空缓存对象 - 会话ID: ${session.id}`);
+      }
+
+      if (clearedCount > 0) {
+        logger.info(
+          `清理缓存完成: sessionId=${session.id}, clearedCount=${clearedCount}, invalidCount=${invalidCacheCount}`,
+        );
+      } else {
+        logger.debug(`[推荐问题缓存] 无需清理的缓存 - 会话ID: ${session.id}`);
+      }
+    });
+  } catch (error) {
+    logger.error("清理过期缓存失败:", error);
+    logger.error(
+      `[推荐问题缓存] 清理过期缓存失败 - 会话ID: ${session?.id || "unknown"}, 错误:`,
+      error,
+    );
+  }
+}
+
 // 从会话缓存中获取推荐问题
 function getCachedQuestions(
   session: any,
@@ -241,9 +360,10 @@ function getCachedQuestions(
     `[推荐问题缓存] 获取缓存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 用户消息: "${userMessage || ""}"`,
   );
 
-  if (!session?.suggestedQuestions) {
+  // 增强的会话ID和缓存数据验证
+  if (!session?.id || !session?.suggestedQuestions) {
     logger.debug(
-      `[推荐问题缓存] 会话无缓存数据 - 会话ID: ${session?.id || "unknown"}`,
+      `[推荐问题缓存] 会话ID或缓存数据无效 - 会话ID: ${session?.id || "unknown"}`,
     );
     return null;
   }
@@ -259,23 +379,42 @@ function getCachedQuestions(
     questionsCount: cache?.questions?.length || 0,
   });
 
-  if (!cache || !isCacheValid(cache.timestamp)) {
-    logger.debug(
-      `[推荐问题缓存] 缓存无效或不存在 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}`,
-    );
-    return null;
-  }
+  // 使用统一的缓存验证函数
+  const isValid = validateCache(
+    cache,
+    session.id,
+    type === "related" ? userMessage : undefined,
+  );
 
-  // 对于related类型，还需要检查用户消息是否匹配
-  if (type === "related" && cache.userMessage !== userMessage) {
+  if (!isValid) {
     logger.debug(
-      `[推荐问题缓存] 用户消息不匹配 - 缓存消息: "${cache.userMessage}", 当前消息: "${userMessage}"`,
+      `[推荐问题缓存] 缓存验证失败 - 会话ID: ${session.id}, 类型: ${type}`,
+      {
+        hasCache: !!cache,
+        timestamp: cache?.timestamp,
+        isTimeValid: cache?.timestamp ? isCacheValid(cache.timestamp) : false,
+        hasQuestions:
+          cache?.questions &&
+          Array.isArray(cache.questions) &&
+          cache.questions.length > 0,
+        sessionMatch: !cache?.sessionId || cache.sessionId === session.id,
+        userMessageMatch:
+          type === "related" ? cache?.userMessage === userMessage : true,
+      },
     );
+
+    // 清理无效缓存
+    if (cache && !isCacheValid(cache.timestamp)) {
+      delete session.suggestedQuestions[type];
+      logger.debug(
+        `[推荐问题缓存] 已清理过期缓存 - 会话ID: ${session.id}, 类型: ${type}`,
+      );
+    }
     return null;
   }
 
   logger.debug(
-    `[推荐问题缓存] 返回缓存问题 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 问题数量: ${cache.questions.length}`,
+    `[推荐问题缓存] 返回有效缓存问题 - 会话ID: ${session.id}, 类型: ${type}, 问题数量: ${cache.questions.length}`,
   );
   return cache.questions;
 }
@@ -292,34 +431,84 @@ function setCachedQuestions(
     `[推荐问题缓存] 设置缓存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 问题数量: ${questions.length}, 用户消息: "${userMessage || ""}"`,
   );
 
+  // 增强的输入验证
+  if (!session?.id) {
+    logger.error(
+      `[推荐问题缓存] 无效的会话对象 - 会话ID: ${session?.id || "unknown"}`,
+    );
+    return;
+  }
+
+  if (!questions || !Array.isArray(questions) || questions.length === 0) {
+    logger.error(
+      `[推荐问题缓存] 无效的问题数组 - 会话ID: ${session.id}, 类型: ${type}`,
+    );
+    return;
+  }
+
+  // 验证问题数据结构
+  const validQuestions = questions.filter(
+    (q) =>
+      q &&
+      typeof q.id === "string" &&
+      typeof q.text === "string" &&
+      q.text.trim(),
+  );
+  if (validQuestions.length !== questions.length) {
+    logger.warn(
+      `[推荐问题缓存] 过滤无效问题 - 会话ID: ${session.id}, 原始数量: ${questions.length}, 有效数量: ${validQuestions.length}`,
+    );
+  }
+
+  if (validQuestions.length === 0) {
+    logger.error(
+      `[推荐问题缓存] 没有有效问题可缓存 - 会话ID: ${session.id}, 类型: ${type}`,
+    );
+    return;
+  }
+
   try {
     chatStore.updateTargetSession(session, (session: any) => {
       if (!session.suggestedQuestions) {
         session.suggestedQuestions = {};
         logger.debug(
-          `[推荐问题缓存] 初始化会话缓存对象 - 会话ID: ${session?.id || "unknown"}`,
+          `[推荐问题缓存] 初始化会话缓存对象 - 会话ID: ${session.id}`,
+        );
+      }
+
+      // 清理同类型的过期缓存
+      if (
+        session.suggestedQuestions[type] &&
+        !isCacheValid(session.suggestedQuestions[type].timestamp)
+      ) {
+        delete session.suggestedQuestions[type];
+        logger.debug(
+          `[推荐问题缓存] 清理过期缓存 - 会话ID: ${session.id}, 类型: ${type}`,
         );
       }
 
       const cache = {
-        questions,
+        questions: validQuestions,
         timestamp: Date.now(),
+        sessionId: session.id, // 添加会话ID标识
         ...(type === "related" && { userMessage: userMessage || "" }),
       };
 
       logger.debug(`[推荐问题缓存] 缓存对象:`, {
-        sessionId: session?.id || "unknown",
+        sessionId: session.id,
         type,
-        questionsCount: questions.length,
+        questionsCount: validQuestions.length,
         timestamp: cache.timestamp,
         userMessage: type === "related" ? userMessage || "" : undefined,
       });
 
       session.suggestedQuestions[type] = cache;
     });
-    logger.info(`缓存推荐问题成功: type=${type}, count=${questions.length}`);
+    logger.info(
+      `缓存推荐问题成功: sessionId=${session.id}, type=${type}, count=${validQuestions.length}`,
+    );
     logger.debug(
-      `[推荐问题缓存] 缓存已保存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}`,
+      `[推荐问题缓存] 缓存已保存 - 会话ID: ${session.id}, 类型: ${type}`,
     );
   } catch (error) {
     logger.error("缓存推荐问题失败:", error);
@@ -332,12 +521,13 @@ function setCachedQuestions(
 
 const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
   onQuestionClick,
-  userMessage,
   type = "default",
+  userMessage,
   sessionId,
   agentType,
   preloadOnly = false,
   onPreloadComplete,
+  disableGeneration = false,
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
@@ -387,6 +577,19 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
           }
           return;
         }
+      }
+
+      // 如果禁用生成且没有缓存，直接返回
+      if (disableGeneration) {
+        logger.debug(
+          `[推荐问题组件] 禁用生成模式，无缓存时不生成新问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
+        );
+        setQuestions([]);
+        setLoading(false);
+        if (preloadOnly && onPreloadComplete) {
+          onPreloadComplete([]);
+        }
+        return;
       }
 
       logger.debug(
@@ -545,7 +748,15 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
     };
 
     loadQuestions();
-  }, [sessionId, type, userMessage, preloadOnly, onPreloadComplete, agentType]);
+  }, [
+    sessionId,
+    type,
+    userMessage,
+    preloadOnly,
+    onPreloadComplete,
+    agentType,
+    disableGeneration,
+  ]);
 
   // 如果是预加载模式，不渲染任何内容
   if (preloadOnly) {
@@ -597,4 +808,4 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
 export default SuggestedQuestions;
 
 // 导出生成函数供外部使用
-export { generateQuestionsFromBackend, getFallbackQuestions };
+export { generateQuestionsFromBackend, getFallbackQuestions, validateCache };

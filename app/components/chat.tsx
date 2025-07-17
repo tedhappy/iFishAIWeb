@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import SuggestedQuestions from "./suggested-questions";
+import SuggestedQuestions, { validateCache } from "./suggested-questions";
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
@@ -1269,41 +1269,12 @@ function Chat() {
       }
     });
 
-    // 初始化推荐问题
+    // 会话切换时不再触发推荐问题缓存逻辑
     logger.info(
-      `[推荐问题] 会话切换检测 - 会话ID: ${session.id}, 消息数量: ${session.messages.length}`,
+      `[会话切换] 会话ID: ${session.id}, 消息数量: ${session.messages.length}`,
     );
 
-    // 打印当前会话的缓存内容
-    if (session.suggestedQuestions) {
-      logger.info(`[推荐问题] 当前会话缓存:`, {
-        sessionId: session.id,
-        defaultCache: session.suggestedQuestions.default
-          ? {
-              timestamp: session.suggestedQuestions.default.timestamp,
-              questionsCount:
-                session.suggestedQuestions.default.questions?.length || 0,
-              isValid:
-                Date.now() - session.suggestedQuestions.default.timestamp <
-                30 * 60 * 1000,
-            }
-          : null,
-        relatedCache: session.suggestedQuestions.related
-          ? {
-              timestamp: session.suggestedQuestions.related.timestamp,
-              userMessage: session.suggestedQuestions.related.userMessage,
-              questionsCount:
-                session.suggestedQuestions.related.questions?.length || 0,
-              isValid:
-                Date.now() - session.suggestedQuestions.related.timestamp <
-                30 * 60 * 1000,
-            }
-          : null,
-      });
-    } else {
-      logger.info(`[推荐问题] 当前会话无缓存 - 会话ID: ${session.id}`);
-    }
-
+    // 仅根据会话状态决定是否显示推荐问题，不触发缓存操作
     if (session.messages.length === 0) {
       // 新会话，显示默认推荐问题
       logger.info(`[推荐问题] 新会话，显示默认问题 - 会话ID: ${session.id}`);
@@ -1311,7 +1282,7 @@ function Chat() {
       setLastUserMessage("");
       setShowSuggestedQuestions(true);
     } else {
-      // 有消息的会话，优先检查缓存的推荐问题
+      // 有消息的会话，根据最后消息状态决定是否显示推荐问题
       const lastMessage = session.messages[session.messages.length - 1];
       logger.info(
         `[推荐问题] 检查最后消息 - 角色: ${lastMessage?.role}, 流式: ${lastMessage?.streaming}`,
@@ -1322,7 +1293,7 @@ function Chat() {
         lastMessage.role === "assistant" &&
         !lastMessage.streaming
       ) {
-        // 最后一条是助手消息且已完成，检查是否有相关问题的缓存
+        // 最后一条是助手消息且已完成，显示推荐问题但不触发缓存
         const userMessages = session.messages.filter((m) => m.role === "user");
         if (userMessages.length > 0) {
           const lastUserMsg = userMessages[userMessages.length - 1];
@@ -1330,14 +1301,12 @@ function Chat() {
           logger.info(`[推荐问题] 最后用户消息: "${lastUserMsgText}"`);
 
           // 检查是否有相关问题的缓存
-          const hasRelatedCache =
-            session.suggestedQuestions?.related &&
-            session.suggestedQuestions.related.userMessage ===
-              lastUserMsgText &&
-            Date.now() - session.suggestedQuestions.related.timestamp <
-              30 * 60 * 1000; // 30分钟缓存
-
-          logger.info(`[推荐问题] 相关问题缓存检查: ${hasRelatedCache}`);
+          const relatedCache = session.suggestedQuestions?.related;
+          const hasRelatedCache = validateCache(
+            relatedCache,
+            session.id,
+            lastUserMsgText,
+          );
 
           if (hasRelatedCache) {
             // 有相关问题缓存，显示相关问题
@@ -1347,12 +1316,8 @@ function Chat() {
             setShowSuggestedQuestions(true);
           } else {
             // 没有相关问题缓存，检查是否有默认问题缓存
-            const hasDefaultCache =
-              session.suggestedQuestions?.default &&
-              Date.now() - session.suggestedQuestions.default.timestamp <
-                30 * 60 * 1000;
-
-            logger.info(`[推荐问题] 默认问题缓存检查: ${hasDefaultCache}`);
+            const defaultCache = session.suggestedQuestions?.default;
+            const hasDefaultCache = validateCache(defaultCache, session.id);
 
             if (hasDefaultCache) {
               // 有默认问题缓存，显示默认问题
@@ -1361,38 +1326,44 @@ function Chat() {
               setLastUserMessage("");
               setShowSuggestedQuestions(true);
             } else {
-              // 没有任何缓存，尝试生成相关问题（如果有用户消息）
-              if (lastUserMsgText && lastUserMsgText.trim()) {
-                logger.info(`[推荐问题] 生成新的相关问题`);
-                setSuggestedQuestionsType("related");
-                setLastUserMessage(lastUserMsgText);
-                setShowSuggestedQuestions(true);
-              } else {
-                // 没有有效的用户消息，显示默认问题
-                logger.info(`[推荐问题] 生成新的默认问题`);
-                setSuggestedQuestionsType("default");
-                setLastUserMessage("");
-                setShowSuggestedQuestions(true);
-              }
+              // 没有任何缓存，隐藏推荐问题（不再自动生成）
+              logger.info(`[推荐问题] 无有效缓存，隐藏推荐问题`);
+              setShowSuggestedQuestions(false);
             }
           }
         } else {
-          // 没有用户消息，显示默认问题
-          logger.info(`[推荐问题] 无用户消息，显示默认问题`);
-          setSuggestedQuestionsType("default");
-          setLastUserMessage("");
-          setShowSuggestedQuestions(true);
+          // 没有用户消息，检查是否有默认问题缓存
+          const defaultCache = session.suggestedQuestions?.default;
+          const hasDefaultCache = validateCache(defaultCache, session.id);
+
+          if (hasDefaultCache) {
+            logger.info(`[推荐问题] 使用默认问题缓存`);
+            setSuggestedQuestionsType("default");
+            setLastUserMessage("");
+            setShowSuggestedQuestions(true);
+          } else {
+            logger.info(`[推荐问题] 无默认问题缓存，隐藏推荐问题`);
+            setShowSuggestedQuestions(false);
+          }
         }
       } else if (lastMessage && lastMessage.role === "user") {
         // 最后一条是用户消息，暂时隐藏推荐问题（等待助手回复）
         logger.info(`[推荐问题] 最后是用户消息，隐藏推荐问题`);
         setShowSuggestedQuestions(false);
       } else {
-        // 其他情况，显示默认问题
-        logger.info(`[推荐问题] 其他情况，显示默认问题`);
-        setSuggestedQuestionsType("default");
-        setLastUserMessage("");
-        setShowSuggestedQuestions(true);
+        // 其他情况，检查是否有默认问题缓存
+        const defaultCache = session.suggestedQuestions?.default;
+        const hasDefaultCache = validateCache(defaultCache, session.id);
+
+        if (hasDefaultCache) {
+          logger.info(`[推荐问题] 其他情况，使用默认问题缓存`);
+          setSuggestedQuestionsType("default");
+          setLastUserMessage("");
+          setShowSuggestedQuestions(true);
+        } else {
+          logger.info(`[推荐问题] 其他情况，无缓存，隐藏推荐问题`);
+          setShowSuggestedQuestions(false);
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2236,7 +2207,7 @@ function Chat() {
                   onQuestionClick={handleSuggestedQuestionClick}
                   type="related"
                   userMessage={lastUserMessage}
-                  sessionId={(session as any).agentSessionId}
+                  sessionId={session.id}
                   agentType={(session.mask as any).agentType}
                   preloadOnly={true}
                   onPreloadComplete={handlePreloadComplete}
@@ -2248,8 +2219,9 @@ function Chat() {
                   onQuestionClick={handleSuggestedQuestionClick}
                   type={suggestedQuestionsType}
                   userMessage={lastUserMessage}
-                  sessionId={(session as any).agentSessionId}
+                  sessionId={session.id}
                   agentType={(session.mask as any).agentType}
+                  disableGeneration={true} // 切换会话时禁用自动生成，只使用缓存
                 />
               )}
             </div>
