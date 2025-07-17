@@ -62,7 +62,7 @@ async function generateQuestionsFromBackend(
       throw new Error(data.error || "生成推荐问题失败");
     }
   } catch (error) {
-    console.error("调用后端生成推荐问题失败:", error);
+    logger.error("调用后端生成推荐问题失败:", error);
     // 返回备用问题
     return getFallbackQuestions(type, userMessage, agentType);
   }
@@ -237,18 +237,46 @@ function getCachedQuestions(
   type: "default" | "related",
   userMessage?: string,
 ): Question[] | null {
-  if (!session?.suggestedQuestions) return null;
+  logger.debug(
+    `[推荐问题缓存] 获取缓存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 用户消息: "${userMessage || ""}"`,
+  );
+
+  if (!session?.suggestedQuestions) {
+    logger.debug(
+      `[推荐问题缓存] 会话无缓存数据 - 会话ID: ${session?.id || "unknown"}`,
+    );
+    return null;
+  }
 
   const cache = session.suggestedQuestions[type];
+
+  logger.debug(`[推荐问题缓存] 缓存检查:`, {
+    sessionId: session.id,
+    type,
+    hasCache: !!cache,
+    cacheTimestamp: cache?.timestamp,
+    cacheUserMessage: cache?.userMessage,
+    questionsCount: cache?.questions?.length || 0,
+  });
+
   if (!cache || !isCacheValid(cache.timestamp)) {
+    logger.debug(
+      `[推荐问题缓存] 缓存无效或不存在 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}`,
+    );
     return null;
   }
 
   // 对于related类型，还需要检查用户消息是否匹配
   if (type === "related" && cache.userMessage !== userMessage) {
+    logger.debug(
+      `[推荐问题缓存] 用户消息不匹配 - 缓存消息: "${cache.userMessage}", 当前消息: "${userMessage}"`,
+    );
     return null;
   }
 
+  logger.debug(
+    `[推荐问题缓存] 返回缓存问题 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 问题数量: ${cache.questions.length}`,
+  );
   return cache.questions;
 }
 
@@ -260,21 +288,45 @@ function setCachedQuestions(
   questions: Question[],
   userMessage?: string,
 ) {
+  logger.debug(
+    `[推荐问题缓存] 设置缓存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 问题数量: ${questions.length}, 用户消息: "${userMessage || ""}"`,
+  );
+
   try {
     chatStore.updateTargetSession(session, (session: any) => {
       if (!session.suggestedQuestions) {
         session.suggestedQuestions = {};
+        logger.debug(
+          `[推荐问题缓存] 初始化会话缓存对象 - 会话ID: ${session?.id || "unknown"}`,
+        );
       }
 
-      session.suggestedQuestions[type] = {
+      const cache = {
         questions,
         timestamp: Date.now(),
         ...(type === "related" && { userMessage: userMessage || "" }),
       };
+
+      logger.debug(`[推荐问题缓存] 缓存对象:`, {
+        sessionId: session?.id || "unknown",
+        type,
+        questionsCount: questions.length,
+        timestamp: cache.timestamp,
+        userMessage: type === "related" ? userMessage || "" : undefined,
+      });
+
+      session.suggestedQuestions[type] = cache;
     });
     logger.info(`缓存推荐问题成功: type=${type}, count=${questions.length}`);
+    logger.debug(
+      `[推荐问题缓存] 缓存已保存 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}`,
+    );
   } catch (error) {
     logger.error("缓存推荐问题失败:", error);
+    logger.error(
+      `[推荐问题缓存] 缓存保存失败 - 会话ID: ${session?.id || "unknown"}, 类型: ${type}, 错误:`,
+      error,
+    );
   }
 }
 
@@ -299,8 +351,13 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
       // 创建请求标识符，避免重复请求
       const requestKey = `${sessionId || ""}_${type}_${userMessage || ""}`;
 
+      logger.debug(
+        `[推荐问题组件] 开始加载问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}, 用户消息: "${userMessage || ""}", 请求标识: ${requestKey}`,
+      );
+
       // 如果请求参数没有变化，跳过请求
       if (lastRequestRef.current === requestKey) {
+        logger.debug(`[推荐问题组件] 跳过重复请求 - 请求标识: ${requestKey}`);
         return;
       }
 
@@ -308,34 +365,59 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
 
       // 首先检查缓存，如果有缓存则直接使用，不显示loading
       if (session) {
+        logger.debug(
+          `[推荐问题组件] 检查缓存 - 会话ID: ${session.id}, 类型: ${type}`,
+        );
         const cachedQuestions = getCachedQuestions(session, type, userMessage);
         if (cachedQuestions) {
           logger.info(
             `使用缓存的推荐问题: type=${type}, count=${cachedQuestions.length}`,
           );
+          logger.debug(
+            `[推荐问题组件] 使用缓存问题 - 会话ID: ${session.id}, 类型: ${type}, 问题数量: ${cachedQuestions.length}`,
+          );
           setQuestions(cachedQuestions);
           setLoading(false);
 
           if (preloadOnly && onPreloadComplete) {
+            logger.debug(
+              `[推荐问题组件] 预加载模式回调 - 会话ID: ${session.id}, 问题数量: ${cachedQuestions.length}`,
+            );
             onPreloadComplete(cachedQuestions);
           }
           return;
         }
       }
 
+      logger.debug(
+        `[推荐问题组件] 缓存未命中，生成新问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
+      );
+
       try {
         // 1. 对于default类型，优先使用固定问题（不需要loading）
         if (type === "default") {
+          logger.debug(
+            `[推荐问题组件] 获取固定默认问题 - 会话ID: ${sessionId || "unknown"}, Agent类型: ${agentType || "unknown"}`,
+          );
           const fixedQuestions = getFixedDefaultQuestions(agentType);
+          logger.debug(
+            `[推荐问题组件] 固定问题数量: ${fixedQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+          );
           setQuestions(fixedQuestions);
 
           // 如果是预加载模式，调用回调
           if (preloadOnly && onPreloadComplete) {
+            logger.debug(
+              `[推荐问题组件] 预加载模式回调(固定问题) - 会话ID: ${sessionId || "unknown"}, 问题数量: ${fixedQuestions.length}`,
+            );
             onPreloadComplete(fixedQuestions);
           }
 
           // 缓存固定问题
           if (session) {
+            logger.debug(
+              `[推荐问题组件] 缓存固定问题 - 会话ID: ${session.id}, 类型: ${type}`,
+            );
             setCachedQuestions(chatStore, session, type, fixedQuestions);
           }
 
@@ -344,6 +426,9 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
         }
 
         // 只有在需要调用后端生成问题时才显示loading
+        logger.debug(
+          `[推荐问题组件] 开始后端生成流程 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
+        );
         setLoading(true);
 
         // 2. 调用后端生成新问题（只有在没有缓存时才会执行到这里）
@@ -355,6 +440,10 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
         const actualUserMessage =
           actualType === "default" ? undefined : userMessage;
 
+        logger.debug(
+          `[推荐问题组件] 实际类型: ${actualType}, 实际用户消息: "${actualUserMessage || ""}" - 会话ID: ${sessionId || "unknown"}`,
+        );
+
         const generatedQuestions = await generateQuestionsFromBackend(
           sessionId || "", // 传递空字符串而不是undefined
           actualType,
@@ -362,10 +451,17 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
           agentType,
         );
 
+        logger.debug(
+          `[推荐问题组件] 后端返回问题数量: ${generatedQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+        );
+
         // 如果类型被降级了，记录日志
         if (actualType !== type) {
           logger.info(
             `推荐问题类型从 ${type} 降级为 ${actualType}，因为缺少用户消息`,
+          );
+          logger.debug(
+            `[推荐问题组件] 类型降级: ${type} -> ${actualType} - 会话ID: ${sessionId || "unknown"}`,
           );
         }
 
@@ -377,20 +473,38 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
               index === self.findIndex((q) => q.text === question.text),
           );
           finalQuestions = uniqueQuestions;
+          logger.debug(
+            `[推荐问题组件] 去重后问题数量: ${finalQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+          );
         } else {
           // 使用备用问题
+          logger.debug(
+            `[推荐问题组件] 使用备用问题 - 会话ID: ${sessionId || "unknown"}`,
+          );
           finalQuestions = getFallbackQuestions(type, userMessage, agentType);
+          logger.debug(
+            `[推荐问题组件] 备用问题数量: ${finalQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+          );
         }
 
+        logger.debug(
+          `[推荐问题组件] 设置最终问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${actualType}, 问题数量: ${finalQuestions.length}`,
+        );
         setQuestions(finalQuestions);
 
         // 如果是预加载模式，调用回调
         if (preloadOnly && onPreloadComplete) {
+          logger.debug(
+            `[推荐问题组件] 预加载模式回调(生成问题) - 会话ID: ${sessionId || "unknown"}, 问题数量: ${finalQuestions.length}`,
+          );
           onPreloadComplete(finalQuestions);
         }
 
         // 缓存生成的问题
         if (session) {
+          logger.debug(
+            `[推荐问题组件] 缓存生成的问题 - 会话ID: ${session.id}, 类型: ${actualType}`,
+          );
           setCachedQuestions(
             chatStore,
             session,
@@ -401,19 +515,32 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
         }
       } catch (error) {
         logger.error("生成推荐问题失败:", error);
+        logger.debug(
+          `[推荐问题组件] 生成失败，使用备用问题 - 会话ID: ${sessionId || "unknown"}, 错误:`,
+          error,
+        );
         // 使用备用问题
         const fallbackQuestions = getFallbackQuestions(
           type,
           userMessage,
           agentType,
         );
+        logger.debug(
+          `[推荐问题组件] 错误备用问题数量: ${fallbackQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+        );
         setQuestions(fallbackQuestions);
 
         if (preloadOnly && onPreloadComplete) {
+          logger.debug(
+            `[推荐问题组件] 预加载模式回调(错误备用) - 会话ID: ${sessionId || "unknown"}, 问题数量: ${fallbackQuestions.length}`,
+          );
           onPreloadComplete(fallbackQuestions);
         }
       } finally {
         setLoading(false);
+        logger.debug(
+          `[推荐问题组件] 加载完成 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
+        );
       }
     };
 

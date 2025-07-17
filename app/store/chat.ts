@@ -591,7 +591,7 @@ export const useChatStore = createPersistStore(
           {
             ...RetryPresets.network,
             onRetry: (attempt, error) => {
-              console.log(`重试第 ${attempt} 次:`, error.message);
+              logger.info(`重试第 ${attempt} 次:`, error.message);
               botMessage.loadingStage = "connecting";
               botMessage.content = `网络连接不稳定，正在重试 (${attempt}/${RetryPresets.network.maxRetries})...`;
               get().updateTargetSession(session, (session) => {

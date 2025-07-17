@@ -1,3 +1,5 @@
+import { logger } from "./logger";
+
 /**
  * 打字机效果工具类
  * 提供流畅的文本逐字显示功能
@@ -79,7 +81,7 @@ export class TypingEffect {
     // 文本长度验证和截断
     let text = originalText;
     if (text.length > this.options.maxLength) {
-      console.warn(
+      logger.warn(
         `消息长度超过限制 (${text.length}/${this.options.maxLength})，将截断显示`,
       );
       text = text.substring(0, this.options.maxLength) + "...";
@@ -99,7 +101,7 @@ export class TypingEffect {
       // 重试机制
       if (this.shouldRetry(error)) {
         this.retryCount++;
-        console.log(
+        logger.debug(
           `重试打字机效果 (${this.retryCount}/${this.options.maxRetries})`,
         );
 
@@ -217,7 +219,7 @@ export class TypingEffect {
     if (typeof window !== "undefined" && window.performance) {
       const memoryInfo = (performance as any).memory;
       if (memoryInfo && memoryInfo.usedJSHeapSize > 100 * 1024 * 1024) {
-        console.warn(
+        logger.warn(
           `检测到内存使用过高: ${Math.round(memoryInfo.usedJSHeapSize / 1024 / 1024)}MB，建议刷新页面`,
         );
       }

@@ -1113,6 +1113,18 @@ function Chat() {
   };
 
   const doSubmit = (userInput: string) => {
+    logger.info(
+      `[推荐问题] doSubmit开始 - 输入: "${userInput}" - 会话ID: ${session.id}`,
+    );
+    logger.debug(`[推荐问题] doSubmit状态:`, {
+      userInput,
+      sessionId: session.id,
+      showSuggestedQuestions,
+      suggestedQuestionsType,
+      lastUserMessage,
+      questionsPreloading,
+    });
+
     if (userInput.trim() === "" && isEmpty(attachImages)) return;
     const matchCommand = chatCommands.match(userInput);
     if (matchCommand.matched) {
@@ -1123,9 +1135,13 @@ function Chat() {
     }
 
     // 隐藏当前显示的推荐问题
+    logger.info(`[推荐问题] 隐藏推荐问题 - 会话ID: ${session.id}`);
     setShowSuggestedQuestions(false);
 
     // 立即开始预加载相关问题
+    logger.info(
+      `[推荐问题] 开始预加载相关问题 - 会话ID: ${session.id}, 用户消息: "${userInput}"`,
+    );
     setQuestionsPreloading(true);
     setLastUserMessage(userInput);
 
@@ -1166,15 +1182,40 @@ function Chat() {
 
   // 处理推荐问题点击
   const handleSuggestedQuestionClick = (question: string) => {
+    logger.info(`[推荐问题] 点击问题: "${question}" - 会话ID: ${session.id}`);
+    logger.debug(`[推荐问题] 点击问题详情:`, {
+      question,
+      sessionId: session.id,
+      currentType: suggestedQuestionsType,
+      lastUserMessage,
+      showSuggestedQuestions,
+    });
+
     setUserInput(question);
     // 清除当前会话的推荐问题缓存（确保每次对话后重新生成）
     chatStore.updateTargetSession(session, (session) => {
       if (session.suggestedQuestions) {
+        logger.debug(
+          `[推荐问题] 清除相关问题缓存前:`,
+          session.suggestedQuestions,
+        );
         delete session.suggestedQuestions.related;
+        logger.info(`[推荐问题] 已清除相关问题缓存 - 会话ID: ${session.id}`);
+        logger.debug(
+          `[推荐问题] 清除相关问题缓存后:`,
+          session.suggestedQuestions,
+        );
+      } else {
+        logger.info(
+          `[推荐问题] 无推荐问题缓存需要清除 - 会话ID: ${session.id}`,
+        );
       }
     });
     // 自动提交问题
     setTimeout(() => {
+      logger.debug(
+        `[推荐问题] 准备提交问题: "${question}" - 会话ID: ${session.id}`,
+      );
       doSubmit(question);
     }, 100);
   };
@@ -1229,14 +1270,52 @@ function Chat() {
     });
 
     // 初始化推荐问题
+    logger.info(
+      `[推荐问题] 会话切换检测 - 会话ID: ${session.id}, 消息数量: ${session.messages.length}`,
+    );
+
+    // 打印当前会话的缓存内容
+    if (session.suggestedQuestions) {
+      logger.info(`[推荐问题] 当前会话缓存:`, {
+        sessionId: session.id,
+        defaultCache: session.suggestedQuestions.default
+          ? {
+              timestamp: session.suggestedQuestions.default.timestamp,
+              questionsCount:
+                session.suggestedQuestions.default.questions?.length || 0,
+              isValid:
+                Date.now() - session.suggestedQuestions.default.timestamp <
+                30 * 60 * 1000,
+            }
+          : null,
+        relatedCache: session.suggestedQuestions.related
+          ? {
+              timestamp: session.suggestedQuestions.related.timestamp,
+              userMessage: session.suggestedQuestions.related.userMessage,
+              questionsCount:
+                session.suggestedQuestions.related.questions?.length || 0,
+              isValid:
+                Date.now() - session.suggestedQuestions.related.timestamp <
+                30 * 60 * 1000,
+            }
+          : null,
+      });
+    } else {
+      logger.info(`[推荐问题] 当前会话无缓存 - 会话ID: ${session.id}`);
+    }
+
     if (session.messages.length === 0) {
       // 新会话，显示默认推荐问题
+      logger.info(`[推荐问题] 新会话，显示默认问题 - 会话ID: ${session.id}`);
       setSuggestedQuestionsType("default");
       setLastUserMessage("");
       setShowSuggestedQuestions(true);
     } else {
       // 有消息的会话，优先检查缓存的推荐问题
       const lastMessage = session.messages[session.messages.length - 1];
+      logger.info(
+        `[推荐问题] 检查最后消息 - 角色: ${lastMessage?.role}, 流式: ${lastMessage?.streaming}`,
+      );
 
       if (
         lastMessage &&
@@ -1248,6 +1327,7 @@ function Chat() {
         if (userMessages.length > 0) {
           const lastUserMsg = userMessages[userMessages.length - 1];
           const lastUserMsgText = getMessageTextContent(lastUserMsg);
+          logger.info(`[推荐问题] 最后用户消息: "${lastUserMsgText}"`);
 
           // 检查是否有相关问题的缓存
           const hasRelatedCache =
@@ -1257,8 +1337,11 @@ function Chat() {
             Date.now() - session.suggestedQuestions.related.timestamp <
               30 * 60 * 1000; // 30分钟缓存
 
+          logger.info(`[推荐问题] 相关问题缓存检查: ${hasRelatedCache}`);
+
           if (hasRelatedCache) {
             // 有相关问题缓存，显示相关问题
+            logger.info(`[推荐问题] 使用相关问题缓存`);
             setSuggestedQuestionsType("related");
             setLastUserMessage(lastUserMsgText);
             setShowSuggestedQuestions(true);
@@ -1269,19 +1352,24 @@ function Chat() {
               Date.now() - session.suggestedQuestions.default.timestamp <
                 30 * 60 * 1000;
 
+            logger.info(`[推荐问题] 默认问题缓存检查: ${hasDefaultCache}`);
+
             if (hasDefaultCache) {
               // 有默认问题缓存，显示默认问题
+              logger.info(`[推荐问题] 使用默认问题缓存`);
               setSuggestedQuestionsType("default");
               setLastUserMessage("");
               setShowSuggestedQuestions(true);
             } else {
               // 没有任何缓存，尝试生成相关问题（如果有用户消息）
               if (lastUserMsgText && lastUserMsgText.trim()) {
+                logger.info(`[推荐问题] 生成新的相关问题`);
                 setSuggestedQuestionsType("related");
                 setLastUserMessage(lastUserMsgText);
                 setShowSuggestedQuestions(true);
               } else {
                 // 没有有效的用户消息，显示默认问题
+                logger.info(`[推荐问题] 生成新的默认问题`);
                 setSuggestedQuestionsType("default");
                 setLastUserMessage("");
                 setShowSuggestedQuestions(true);
@@ -1290,15 +1378,18 @@ function Chat() {
           }
         } else {
           // 没有用户消息，显示默认问题
+          logger.info(`[推荐问题] 无用户消息，显示默认问题`);
           setSuggestedQuestionsType("default");
           setLastUserMessage("");
           setShowSuggestedQuestions(true);
         }
       } else if (lastMessage && lastMessage.role === "user") {
         // 最后一条是用户消息，暂时隐藏推荐问题（等待助手回复）
+        logger.info(`[推荐问题] 最后是用户消息，隐藏推荐问题`);
         setShowSuggestedQuestions(false);
       } else {
         // 其他情况，显示默认问题
+        logger.info(`[推荐问题] 其他情况，显示默认问题`);
         setSuggestedQuestionsType("default");
         setLastUserMessage("");
         setShowSuggestedQuestions(true);
