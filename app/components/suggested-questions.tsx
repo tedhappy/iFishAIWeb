@@ -305,10 +305,26 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
       }
 
       lastRequestRef.current = requestKey;
-      setLoading(true);
+
+      // 首先检查缓存，如果有缓存则直接使用，不显示loading
+      if (session) {
+        const cachedQuestions = getCachedQuestions(session, type, userMessage);
+        if (cachedQuestions) {
+          logger.info(
+            `使用缓存的推荐问题: type=${type}, count=${cachedQuestions.length}`,
+          );
+          setQuestions(cachedQuestions);
+          setLoading(false);
+
+          if (preloadOnly && onPreloadComplete) {
+            onPreloadComplete(cachedQuestions);
+          }
+          return;
+        }
+      }
 
       try {
-        // 1. 对于default类型，优先使用固定问题
+        // 1. 对于default类型，优先使用固定问题（不需要loading）
         if (type === "default") {
           const fixedQuestions = getFixedDefaultQuestions(agentType);
           setQuestions(fixedQuestions);
@@ -327,35 +343,31 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
           return;
         }
 
-        // 2. 检查缓存
-        if (session) {
-          const cachedQuestions = getCachedQuestions(
-            session,
-            type,
-            userMessage,
-          );
-          if (cachedQuestions) {
-            logger.info(
-              `使用缓存的推荐问题: type=${type}, count=${cachedQuestions.length}`,
-            );
-            setQuestions(cachedQuestions);
+        // 只有在需要调用后端生成问题时才显示loading
+        setLoading(true);
 
-            if (preloadOnly && onPreloadComplete) {
-              onPreloadComplete(cachedQuestions);
-            }
+        // 2. 调用后端生成新问题（只有在没有缓存时才会执行到这里）
+        // 如果是related类型但没有userMessage，则降级为default类型
+        const actualType =
+          type === "related" && (!userMessage || !userMessage.trim())
+            ? "default"
+            : type;
+        const actualUserMessage =
+          actualType === "default" ? undefined : userMessage;
 
-            setLoading(false);
-            return;
-          }
-        }
-
-        // 3. 调用后端生成新问题
         const generatedQuestions = await generateQuestionsFromBackend(
           sessionId || "", // 传递空字符串而不是undefined
-          type,
-          userMessage,
+          actualType,
+          actualUserMessage,
           agentType,
         );
+
+        // 如果类型被降级了，记录日志
+        if (actualType !== type) {
+          logger.info(
+            `推荐问题类型从 ${type} 降级为 ${actualType}，因为缺少用户消息`,
+          );
+        }
 
         let finalQuestions: Question[];
         if (generatedQuestions.length > 0) {
@@ -382,9 +394,9 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
           setCachedQuestions(
             chatStore,
             session,
-            type,
+            actualType,
             finalQuestions,
-            userMessage,
+            actualUserMessage,
           );
         }
       } catch (error) {
@@ -406,15 +418,7 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
     };
 
     loadQuestions();
-  }, [
-    sessionId,
-    type,
-    userMessage,
-    preloadOnly,
-    onPreloadComplete,
-    session,
-    chatStore,
-  ]);
+  }, [sessionId, type, userMessage, preloadOnly, onPreloadComplete, agentType]);
 
   // 如果是预加载模式，不渲染任何内容
   if (preloadOnly) {

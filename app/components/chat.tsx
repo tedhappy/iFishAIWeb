@@ -1235,7 +1235,7 @@ function Chat() {
       setLastUserMessage("");
       setShowSuggestedQuestions(true);
     } else {
-      // 有消息的会话，检查最后一条消息来决定显示什么类型的推荐问题
+      // 有消息的会话，优先检查缓存的推荐问题
       const lastMessage = session.messages[session.messages.length - 1];
 
       if (
@@ -1243,13 +1243,51 @@ function Chat() {
         lastMessage.role === "assistant" &&
         !lastMessage.streaming
       ) {
-        // 最后一条是助手消息且已完成，显示相关问题
+        // 最后一条是助手消息且已完成，检查是否有相关问题的缓存
         const userMessages = session.messages.filter((m) => m.role === "user");
         if (userMessages.length > 0) {
           const lastUserMsg = userMessages[userMessages.length - 1];
-          setSuggestedQuestionsType("related");
-          setLastUserMessage(getMessageTextContent(lastUserMsg));
-          setShowSuggestedQuestions(true);
+          const lastUserMsgText = getMessageTextContent(lastUserMsg);
+
+          // 检查是否有相关问题的缓存
+          const hasRelatedCache =
+            session.suggestedQuestions?.related &&
+            session.suggestedQuestions.related.userMessage ===
+              lastUserMsgText &&
+            Date.now() - session.suggestedQuestions.related.timestamp <
+              30 * 60 * 1000; // 30分钟缓存
+
+          if (hasRelatedCache) {
+            // 有相关问题缓存，显示相关问题
+            setSuggestedQuestionsType("related");
+            setLastUserMessage(lastUserMsgText);
+            setShowSuggestedQuestions(true);
+          } else {
+            // 没有相关问题缓存，检查是否有默认问题缓存
+            const hasDefaultCache =
+              session.suggestedQuestions?.default &&
+              Date.now() - session.suggestedQuestions.default.timestamp <
+                30 * 60 * 1000;
+
+            if (hasDefaultCache) {
+              // 有默认问题缓存，显示默认问题
+              setSuggestedQuestionsType("default");
+              setLastUserMessage("");
+              setShowSuggestedQuestions(true);
+            } else {
+              // 没有任何缓存，尝试生成相关问题（如果有用户消息）
+              if (lastUserMsgText && lastUserMsgText.trim()) {
+                setSuggestedQuestionsType("related");
+                setLastUserMessage(lastUserMsgText);
+                setShowSuggestedQuestions(true);
+              } else {
+                // 没有有效的用户消息，显示默认问题
+                setSuggestedQuestionsType("default");
+                setLastUserMessage("");
+                setShowSuggestedQuestions(true);
+              }
+            }
+          }
         } else {
           // 没有用户消息，显示默认问题
           setSuggestedQuestionsType("default");
