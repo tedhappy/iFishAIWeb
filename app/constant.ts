@@ -275,7 +275,7 @@ export const DEFAULT_INPUT_TEMPLATE = `{{input}}`; // input / time / model / lan
 // Latex inline: $x^2$
 // Latex block: $$e=mc^2$$
 // `;
-export const DEFAULT_SYSTEM_TEMPLATE = `你好，我是小鱼，有什么可以帮你的吗？`;
+export const DEFAULT_SYSTEM_TEMPLATE = `嗨！我是你的智能伙伴小鱼🐟，很高兴见到你！有什么想聊的或者需要帮助的吗？😊`;
 
 export const MCP_TOOLS_TEMPLATE = `
 [clientId]

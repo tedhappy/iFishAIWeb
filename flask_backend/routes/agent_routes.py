@@ -490,12 +490,12 @@ def _generate_questions_with_llm(agent, question_type: str, user_message: str = 
         if question_type == 'default':
             # 根据agent的系统提示词生成默认推荐问题
             system_prompt = agent.get_system_prompt()
-            prompt = f"""基于以下AI助手的能力描述，生成3个用户可能感兴趣的问题，这些问题应该能够展示助手的核心功能和特色。
+            prompt = f"""基于以下AI助手的能力描述，生成3个用户可能会问的问题，这些问题应该以用户的口吻提问，展示助手的核心功能和特色。
 
 助手能力描述：
 {system_prompt}
 
-请生成3个简洁、有趣且实用的问题，每个问题不超过20个字。请以JSON格式返回，格式如下：
+请生成3个简洁、自然且实用的问题，每个问题不超过20个字，问题应该以用户的口吻提问（比如"你能帮我..."、"如何..."、"什么是..."等）。请以JSON格式返回，格式如下：
 {{
   "questions": [
     "问题1",
@@ -507,12 +507,12 @@ def _generate_questions_with_llm(agent, question_type: str, user_message: str = 
 只返回JSON，不要包含其他内容。"""
         else:
             # 根据用户消息生成相关问题
-            prompt = f"""基于用户的提问内容，生成3个相关的后续问题，这些问题应该能够帮助用户深入了解相关话题或解决相关问题。
+            prompt = f"""基于用户的提问内容，生成3个相关的后续问题，这些问题应该以用户的口吻提问，能够帮助用户深入了解相关话题或解决相关问题。
 
 用户的提问：
 {user_message}
 
-请生成3个简洁、相关且有价值的后续问题，每个问题不超过20个字。请以JSON格式返回，格式如下：
+请生成3个简洁、相关且有价值的后续问题，每个问题不超过20个字，问题应该以用户的口吻提问（比如"你能帮我..."、"如何..."、"什么是..."、"能详细说说..."等）。请以JSON格式返回，格式如下：
 {{
   "questions": [
     "问题1",
@@ -596,9 +596,9 @@ def _get_fallback_questions(question_type: str, user_message: str = '') -> list:
     
     if question_type == 'default':
         fallback_questions = [
-            "AI技术的发展会给我们的生活带来哪些改变？",
-            "如何提高工作效率和学习能力？",
-            "有什么实用的生活小技巧可以分享？"
+            "你能介绍一下AI技术对生活的影响吗？",
+            "如何提高我的工作效率和学习能力？",
+            "能分享一些实用的生活小技巧吗？"
         ]
     else:
         # 根据用户消息内容生成相关问题
@@ -611,7 +611,7 @@ def _get_fallback_questions(question_type: str, user_message: str = '') -> list:
             ]
         elif '编程' in message_lower or '代码' in message_lower or 'code' in message_lower:
             fallback_questions = [
-                "如何提高编程技能？",
+                "如何提高我的编程技能？",
                 "学习编程需要掌握哪些基础知识？",
                 "有哪些好的编程实践方法？"
             ]

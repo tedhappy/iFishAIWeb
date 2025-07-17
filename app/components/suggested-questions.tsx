@@ -103,19 +103,19 @@ function getFallbackQuestions(
         relatedQuestions = [
           "如何系统性地调试代码问题？",
           "有哪些常见的编程错误类型？",
-          "推荐一些好用的调试工具",
+          "能推荐一些好用的调试工具吗？",
         ];
       } else if (message.includes("性能") || message.includes("优化")) {
         relatedQuestions = [
           "如何分析和优化代码性能？",
           "有哪些常见的性能瓶颈？",
-          "推荐一些性能测试工具",
+          "能推荐一些性能测试工具吗？",
         ];
       } else {
         relatedQuestions = [
           "如何提高代码质量和可维护性？",
           "有哪些最佳编程实践？",
-          "推荐一些学习资源和工具",
+          "能推荐一些学习资源和工具吗？",
         ];
       }
     } else if (agentType === "writing") {
@@ -169,7 +169,7 @@ function getFallbackQuestions(
         relatedQuestions = [
           "有哪些提高记忆力的技巧？",
           "如何长期保持知识记忆？",
-          "推荐一些记忆训练方法",
+          "能推荐一些记忆训练方法吗？",
         ];
       } else {
         relatedQuestions = [
@@ -192,7 +192,7 @@ function getFallbackQuestions(
         message.includes("code")
       ) {
         relatedQuestions = [
-          "如何提高编程技能？",
+          "如何提高我的编程技能？",
           "学习编程需要掌握哪些基础知识？",
           "有哪些好的编程实践方法？",
         ];

@@ -618,7 +618,8 @@ const cn = {
   },
   Store: {
     DefaultTopic: "开始聊天",
-    BotHello: "你好，我是小鱼，有什么可以帮你的吗？",
+    BotHello:
+      "嗨！我是你的智能伙伴小鱼🐟，很高兴见到你！有什么想聊的或者需要帮助的吗？😊",
     Error: "出错了，稍后重试吧",
     Prompt: {
       History: (content: string) => "这是历史聊天总结作为前情提要：" + content,

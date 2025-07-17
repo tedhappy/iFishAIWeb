@@ -635,7 +635,8 @@ const en: LocaleType = {
   },
   Store: {
     DefaultTopic: "New Conversation",
-    BotHello: "Hello! How can I assist you today?",
+    BotHello:
+      "Hi there! I'm your smart companion Fish🐟, nice to meet you! What would you like to chat about or how can I help you today? 😊",
     Error: "Something went wrong, please try again later.",
     Prompt: {
       History: (content: string) =>

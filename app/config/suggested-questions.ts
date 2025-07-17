@@ -17,15 +17,15 @@ export interface AgentQuestionsConfig {
 const DEFAULT_QUESTIONS: QuestionConfig[] = [
   {
     id: "default-ai-1",
-    text: "AI技术的发展会给我们的生活带来哪些改变？",
+    text: "你能介绍一下AI技术对生活的影响吗？",
   },
   {
     id: "default-productivity-1",
-    text: "如何提高工作效率和学习能力？",
+    text: "如何提高我的工作效率和学习能力？",
   },
   {
     id: "default-life-1",
-    text: "有什么实用的生活小技巧可以分享？",
+    text: "能分享一些实用的生活小技巧吗？",
   },
 ];
 
@@ -33,9 +33,10 @@ const DEFAULT_QUESTIONS: QuestionConfig[] = [
 export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
   {
     agentType: "general",
-    agentName: "通用助手",
+    agentName: "智能伙伴小鱼",
     defaultQuestions: DEFAULT_QUESTIONS,
-    description: "适用于日常对话和通用问题咨询",
+    description:
+      "你的贴心智能伙伴，能聊天解答、搜索信息、查地图路线，就像身边的万能助手！",
   },
   {
     agentType: "coding",
@@ -62,7 +63,7 @@ export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
     defaultQuestions: [
       {
         id: "writing-improve-1",
-        text: "如何提高写作技巧和表达能力？",
+        text: "如何提高我的写作技巧和表达能力？",
       },
       {
         id: "writing-structure-1",
@@ -123,11 +124,11 @@ export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
       },
       {
         id: "ticket-analysis-1",
-        text: "分析门票销售数据的趋势和特点",
+        text: "能分析一下门票销售数据的趋势吗？",
       },
       {
         id: "ticket-report-1",
-        text: "生成门票订单的统计报表",
+        text: "能帮我生成门票订单的统计报表吗？",
       },
     ],
     description: "专注于门票订单查询、数据分析和可视化",
@@ -154,25 +155,27 @@ export function getAvailableAgentTypes(): string[] {
 // 根据agent类型获取agent名称
 export function getAgentName(agentType?: string): string {
   if (!agentType) {
-    return "通用助手";
+    return "智能伙伴小鱼";
   }
 
   const config = AGENT_QUESTIONS_CONFIG.find(
     (config) => config.agentType === agentType,
   );
-  return config ? config.agentName : "通用助手";
+  return config ? config.agentName : "智能伙伴小鱼";
 }
 
 // 获取agent描述
 export function getAgentDescription(agentType?: string): string {
   if (!agentType) {
-    return "适用于日常对话和通用问题咨询";
+    return "你的贴心智能伙伴，能聊天解答、搜索信息、查地图路线，就像身边的万能助手！";
   }
 
   const config = AGENT_QUESTIONS_CONFIG.find(
     (config) => config.agentType === agentType,
   );
-  return config ? config.description || "" : "适用于日常对话和通用问题咨询";
+  return config
+    ? config.description || ""
+    : "你的贴心智能伙伴，能聊天解答、搜索信息、查地图路线，就像身边的万能助手！";
 }
 
 // 验证问题配置的有效性
