@@ -1004,6 +1004,8 @@ function Chat() {
     "default" | "related"
   >("default");
   const [lastUserMessage, setLastUserMessage] = useState<string>("");
+  const [questionsPreloading, setQuestionsPreloading] = useState(false);
+  const [preloadedQuestions, setPreloadedQuestions] = useState<any[]>([]);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
@@ -1120,6 +1122,13 @@ function Chat() {
       return;
     }
 
+    // 隐藏当前显示的推荐问题
+    setShowSuggestedQuestions(false);
+
+    // 立即开始预加载相关问题
+    setQuestionsPreloading(true);
+    setLastUserMessage(userInput);
+
     // 统一通过Agent处理所有对话，无需区分普通对话和Agent对话
     chatStore.onUserInput(userInput, attachImages);
     setAttachImages([]);
@@ -1128,18 +1137,42 @@ function Chat() {
     setPromptHints([]);
     if (!isMobileScreen) inputRef.current?.focus();
     setAutoScroll(true);
-
-    // 生成相关问题
-    setTimeout(() => {
-      setLastUserMessage(userInput);
-      setSuggestedQuestionsType("related");
-      setShowSuggestedQuestions(true);
-    }, 1000);
   };
+
+  // 预加载完成回调
+  const handlePreloadComplete = (questions: any[]) => {
+    setPreloadedQuestions(questions);
+    setQuestionsPreloading(false);
+    logger.info("推荐问题预加载完成:", questions.length);
+  };
+
+  // 检查是否应该显示预加载的问题
+  const checkAndShowPreloadedQuestions = () => {
+    if (!questionsPreloading && preloadedQuestions.length > 0) {
+      // 检查当前会话的最后一条消息是否完成流式输出
+      const lastMessage = session.messages[session.messages.length - 1];
+      if (lastMessage && !lastMessage.streaming) {
+        setSuggestedQuestionsType("related");
+        setShowSuggestedQuestions(true);
+        setPreloadedQuestions([]); // 清空预加载的问题
+      }
+    }
+  };
+
+  // 监听消息变化，检查是否应该显示预加载的问题
+  useEffect(() => {
+    checkAndShowPreloadedQuestions();
+  }, [session.messages, questionsPreloading, preloadedQuestions]);
 
   // 处理推荐问题点击
   const handleSuggestedQuestionClick = (question: string) => {
     setUserInput(question);
+    // 清除当前会话的推荐问题缓存（确保每次对话后重新生成）
+    chatStore.updateTargetSession(session, (session) => {
+      if (session.suggestedQuestions) {
+        delete session.suggestedQuestions.related;
+      }
+    });
     // 自动提交问题
     setTimeout(() => {
       doSubmit(question);
@@ -1197,12 +1230,41 @@ function Chat() {
 
     // 初始化推荐问题
     if (session.messages.length === 0) {
+      // 新会话，显示默认推荐问题
       setSuggestedQuestionsType("default");
       setLastUserMessage("");
       setShowSuggestedQuestions(true);
     } else {
-      // 如果有消息，清空推荐问题，等待用户提问后生成
-      setShowSuggestedQuestions(false);
+      // 有消息的会话，检查最后一条消息来决定显示什么类型的推荐问题
+      const lastMessage = session.messages[session.messages.length - 1];
+
+      if (
+        lastMessage &&
+        lastMessage.role === "assistant" &&
+        !lastMessage.streaming
+      ) {
+        // 最后一条是助手消息且已完成，显示相关问题
+        const userMessages = session.messages.filter((m) => m.role === "user");
+        if (userMessages.length > 0) {
+          const lastUserMsg = userMessages[userMessages.length - 1];
+          setSuggestedQuestionsType("related");
+          setLastUserMessage(getMessageTextContent(lastUserMsg));
+          setShowSuggestedQuestions(true);
+        } else {
+          // 没有用户消息，显示默认问题
+          setSuggestedQuestionsType("default");
+          setLastUserMessage("");
+          setShowSuggestedQuestions(true);
+        }
+      } else if (lastMessage && lastMessage.role === "user") {
+        // 最后一条是用户消息，暂时隐藏推荐问题（等待助手回复）
+        setShowSuggestedQuestions(false);
+      } else {
+        // 其他情况，显示默认问题
+        setSuggestedQuestionsType("default");
+        setLastUserMessage("");
+        setShowSuggestedQuestions(true);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
@@ -2039,6 +2101,18 @@ function Chat() {
                     </Fragment>
                   );
                 })}
+              {/* 预加载推荐问题组件（不可见） */}
+              {questionsPreloading && (
+                <SuggestedQuestions
+                  onQuestionClick={handleSuggestedQuestionClick}
+                  type="related"
+                  userMessage={lastUserMessage}
+                  sessionId={(session as any).agentSessionId}
+                  agentType={(session.mask as any).agentType}
+                  preloadOnly={true}
+                  onPreloadComplete={handlePreloadComplete}
+                />
+              )}
               {/* 推荐问题组件 */}
               {showSuggestedQuestions && (
                 <SuggestedQuestions
@@ -2046,6 +2120,7 @@ function Chat() {
                   type={suggestedQuestionsType}
                   userMessage={lastUserMessage}
                   sessionId={(session as any).agentSessionId}
+                  agentType={(session.mask as any).agentType}
                 />
               )}
             </div>

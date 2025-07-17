@@ -101,6 +101,11 @@ const en: LocaleType = {
       SaveAs: "Save as Mask",
     },
     IsContext: "Contextual Prompt",
+    SuggestedQuestions: {
+      Title: "Related Questions",
+      DefaultTitle: "Suggested Questions",
+      Loading: "Generating suggested questions...",
+    },
     ShortcutKey: {
       Title: "Keyboard Shortcuts",
       newChat: "Open New Chat",

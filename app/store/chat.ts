@@ -94,6 +94,19 @@ export interface ChatSession {
   clearContextIndex?: number;
   deepThinkingEnabled?: boolean; // 深度思考模式开关，默认为true
 
+  // 推荐问题缓存
+  suggestedQuestions?: {
+    default?: {
+      questions: Array<{ id: string; text: string }>;
+      timestamp: number;
+    };
+    related?: {
+      questions: Array<{ id: string; text: string }>;
+      timestamp: number;
+      userMessage: string; // 关联的用户消息
+    };
+  };
+
   mask: Mask;
 }
 
