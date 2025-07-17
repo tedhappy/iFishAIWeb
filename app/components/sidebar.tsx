@@ -297,7 +297,10 @@ export function SideBarTail(props: {
   );
 }
 
-export function SideBar(props: { className?: string }) {
+export function SideBar(props: {
+  className?: string;
+  onCloseSidebar?: () => void;
+}) {
   useHotKey();
   const { onDragStart, shouldNarrow } = useDragSideBar();
   const [showDiscoverySelector, setshowDiscoverySelector] = useState(false);
@@ -420,7 +423,11 @@ export function SideBar(props: { className?: string }) {
       <SideBarBody
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            navigate(Path.Home);
+            if (props.onCloseSidebar) {
+              props.onCloseSidebar();
+            } else {
+              navigate(Path.Home);
+            }
           }
         }}
       >

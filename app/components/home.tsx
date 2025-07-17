@@ -167,6 +167,7 @@ function Screen() {
   const isSdNew = location.pathname === Path.SdNew;
 
   const isMobileScreen = useMobileScreen();
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const shouldTightBorder =
     getClientConfig()?.isApp || (config.tightBorder && !isMobileScreen);
 
@@ -185,6 +186,29 @@ function Screen() {
     if (isAuth) return <AuthPage />;
     if (isSd) return <Sd />;
     if (isSdNew) return <Sd />;
+
+    // 移动端且在首页时的特殊处理
+    if (isMobileScreen && isHome) {
+      if (showMobileSidebar) {
+        // 显示侧边栏
+        return (
+          <SideBar
+            className={clsx({
+              [styles["sidebar-show"]]: true,
+            })}
+            onCloseSidebar={() => setShowMobileSidebar(false)}
+          />
+        );
+      } else {
+        // 显示聊天窗口
+        return (
+          <WindowContent>
+            <Chat onShowSidebar={() => setShowMobileSidebar(true)} />
+          </WindowContent>
+        );
+      }
+    }
+
     return (
       <>
         <SideBar

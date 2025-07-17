@@ -989,7 +989,7 @@ export function ShortcutKeyModal(props: { onClose: () => void }) {
   );
 }
 
-function Chat() {
+function Chat(props?: { onShowSidebar?: () => void }) {
   type RenderMessage = ChatMessage & { preview?: boolean };
 
   const chatStore = useChatStore();
@@ -1878,7 +1878,13 @@ function Chat() {
                   icon={<ReturnIcon />}
                   bordered
                   title={Locale.Chat.Actions.ChatList}
-                  onClick={() => navigate(Path.Home)}
+                  onClick={() => {
+                    if (props?.onShowSidebar) {
+                      props.onShowSidebar();
+                    } else {
+                      navigate(Path.Home);
+                    }
+                  }}
                 />
               </div>
             </div>
