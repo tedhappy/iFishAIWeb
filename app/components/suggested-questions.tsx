@@ -425,19 +425,20 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
     return null;
   }
 
-  if (loading) {
-    return (
-      <div className={styles["suggested-questions"]}>
-        <div className={styles["suggested-questions-title"]}>
-          <span className={styles["title-icon"]}>💡</span>
-          <span>相关问题</span>
-        </div>
-        <div className={styles["loading-text"]}>
-          正在生成推荐问题，也可以直接输入问题
-        </div>
-      </div>
-    );
-  }
+  // 移除loading显示，但保持loading逻辑
+  // if (loading) {
+  //   return (
+  //     <div className={styles["suggested-questions"]}>
+  //       <div className={styles["suggested-questions-title"]}>
+  //         <span className={styles["title-icon"]}>💡</span>
+  //         <span>相关问题</span>
+  //       </div>
+  //       <div className={styles["loading-text"]}>
+  //         正在生成推荐问题，也可以直接输入问题
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (!questions || questions.length === 0) {
     return null;
