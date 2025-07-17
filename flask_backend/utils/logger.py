@@ -90,3 +90,14 @@ def info_with_time(*args: Any) -> None:
 def debug_with_time(*args: Any) -> None:
     """带时间戳的调试日志"""
     logger.debug(*args)
+
+def get_logger(name: str = __name__) -> TimestampLogger:
+    """获取带时间戳的日志记录器实例
+    
+    Args:
+        name: 日志记录器名称，通常使用 __name__
+        
+    Returns:
+        TimestampLogger: 带时间戳的日志记录器实例
+    """
+    return TimestampLogger(name)

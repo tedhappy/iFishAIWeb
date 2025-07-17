@@ -8,9 +8,13 @@ from datetime import datetime
 from agents.base_agent import BaseAgent
 from agents.ticket_agent import TicketAgent
 from agents.general_agent import GeneralAgent
+from agents.chatbi_agent import ChatBIAgent
+from agents.text_to_image_agent import TextToImageAgent
+from agents.food_recommendation_agent import FoodRecommendationAgent
+from agents.train_ticket_agent import TrainTicketAgent
+from agents.fortune_teller_agent import FortuneTellerAgent
 from .logger import logger
 from .mcp_manager import mcp_manager
-# 导入其他Agent类...
 
 class SessionManager:
     """会话管理器，负责Agent实例的创建和管理（线程安全）"""
@@ -22,10 +26,13 @@ class SessionManager:
         self.session_ttl = session_ttl  # 会话过期时间（秒），默认2小时
         self._lock = threading.RLock()  # 可重入锁，保证线程安全
         self.agent_types = {
-            'ticket': TicketAgent,
+            # 'ticket': TicketAgent,  # 隐藏门票助手
             'general': GeneralAgent,  # 通用助手
-            'image': None,  # 待实现
-            'chatbi': None,  # 待实现
+            'chatbi': ChatBIAgent,  # ChatBI助手
+            'text_to_image': TextToImageAgent,  # AI文生图助手
+            'food_recommendation': FoodRecommendationAgent,  # 美食推荐助手
+            'train_ticket': TrainTicketAgent,  # 火车票查询助手
+            'fortune_teller': FortuneTellerAgent,  # 算命先生助手
             'default': GeneralAgent  # 默认使用通用助手
         }
         # Logger已通过导入的logger模块统一管理
