@@ -579,15 +579,23 @@ const SuggestedQuestions: React.FC<SuggestedQuestionsProps> = ({
         }
       }
 
-      // 如果禁用生成且没有缓存，直接返回
+      // 如果禁用生成且没有缓存，提供默认问题作为后备方案
       if (disableGeneration) {
         logger.debug(
-          `[推荐问题组件] 禁用生成模式，无缓存时不生成新问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
+          `[推荐问题组件] 禁用生成模式，无缓存时提供默认问题 - 会话ID: ${sessionId || "unknown"}, 类型: ${type}`,
         );
-        setQuestions([]);
+
+        // 获取默认问题作为后备方案
+        const defaultQuestions = getFixedDefaultQuestions(agentType);
+        logger.debug(
+          `[推荐问题组件] 禁用生成模式默认问题数量: ${defaultQuestions.length} - 会话ID: ${sessionId || "unknown"}`,
+        );
+
+        setQuestions(defaultQuestions);
         setLoading(false);
+
         if (preloadOnly && onPreloadComplete) {
-          onPreloadComplete([]);
+          onPreloadComplete(defaultQuestions);
         }
         return;
       }
