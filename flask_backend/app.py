@@ -12,6 +12,11 @@ local_qwen_agent_path = os.path.join(project_root)
 if local_qwen_agent_path not in sys.path:
     sys.path.insert(0, local_qwen_agent_path)
 
+# 将flask_backend目录添加到Python路径
+flask_backend_path = os.path.dirname(__file__)
+if flask_backend_path not in sys.path:
+    sys.path.insert(0, flask_backend_path)
+
 # 然后导入其他模块
 from flask import Flask, request, jsonify
 from flask_cors import CORS

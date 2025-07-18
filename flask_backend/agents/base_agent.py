@@ -315,6 +315,21 @@ class BaseAgent(ABC):
         """处理用户输入并返回流式响应"""
         logger.info(f"[{self.session_id}] 开始处理流式聊天请求 - 输入长度: {len(user_input)}, 文件: {file_path}, 深度思考: {deep_thinking}")
         
+        # 创建工具状态回调函数
+        def tool_status_callback(status_info):
+            """工具调用状态回调函数"""
+            try:
+                yield {
+                    "type": "tool_status",
+                    "tool_status": status_info['type'],
+                    "content": status_info['message'],
+                    "server_name": status_info.get('server_name', ''),
+                    "tool_name": status_info.get('tool_name', ''),
+                    "session_id": self.session_id
+                }
+            except Exception as e:
+                logger.error(f"[{self.session_id}] 工具状态回调失败: {str(e)}")
+        
         try:
             # 如果当前Agent的思考模式设置与请求不匹配，重新初始化Agent
             current_thinking_enabled = getattr(self.bot, '_thinking_enabled', True)
@@ -343,6 +358,9 @@ class BaseAgent(ABC):
             self.messages.append(message)
             logger.info(f"[{self.session_id}] 消息已添加到历史，当前历史长度: {len(self.messages)}")
             
+            # 设置工具调用状态回调
+            self._tool_status_generator = None
+            
             # 调用qwen-agent并流式返回
             logger.info(f"[{self.session_id}] 开始调用qwen-agent流式响应，当前可用工具数量: {len(self.bot.function_list) if hasattr(self.bot, 'function_list') else 0}")
             response = []
@@ -350,14 +368,48 @@ class BaseAgent(ABC):
             last_content_length = 0  # 跟踪上次发送的内容长度
             last_reasoning_length = 0  # 跟踪上次发送的思考内容长度
             
+            # 修改bot的工具调用方法，添加状态回调
+            original_function_map = getattr(self.bot, 'function_map', {})
+            for func_name, func_obj in original_function_map.items():
+                if hasattr(func_obj, 'call'):
+                    original_call = func_obj.call
+                    def create_wrapped_call(original_func, callback_gen):
+                        def wrapped_call(*args, **kwargs):
+                            # 添加状态回调到kwargs
+                            kwargs['status_callback'] = lambda status: self._handle_tool_status(status)
+                            return original_func(*args, **kwargs)
+                        return wrapped_call
+                    func_obj.call = create_wrapped_call(original_call, tool_status_callback)
+            
             for resp in self.bot.run(self.messages):
                 response = resp
                 response_count += 1
-                logger.debug(f"[{self.session_id}] 收到qwen-agent流式响应 #{response_count}")
+                # logger.debug(f"[{self.session_id}] 收到qwen-agent流式响应 #{response_count}")
+                
+                # 检查是否有工具状态需要发送
+                if hasattr(self, '_pending_tool_status'):
+                    for status in self._pending_tool_status:
+                        yield status
+                    self._pending_tool_status = []
                 
                 # 提取当前响应中的助手回复
                 for msg in resp:
                     if msg.get('role') == 'assistant':
+                        # 检查是否有工具状态信息在extra字段中
+                        extra = msg.get('extra', {})
+                        if extra and extra.get('type') == 'tool_status':
+                            # 处理工具状态信息
+                            tool_status_info = extra.get('tool_status', {})
+                            yield {
+                                "type": "tool_status",
+                                "tool_status": tool_status_info.get('type', 'unknown'),
+                                "content": tool_status_info.get('message', ''),
+                                "server_name": tool_status_info.get('server_name', ''),
+                                "tool_name": tool_status_info.get('tool_name', ''),
+                                "session_id": self.session_id
+                            }
+                            continue
+                        
                         # 处理思考内容（reasoning_content）- 仅在深度思考模式开启时输出
                         if deep_thinking:
                             reasoning_content = msg.get('reasoning_content', '')
@@ -384,6 +436,12 @@ class BaseAgent(ABC):
                                 "is_thinking": False,
                                 "session_id": self.session_id
                             }
+            
+            # 检查最后是否还有工具状态需要发送
+            if hasattr(self, '_pending_tool_status'):
+                for status in self._pending_tool_status:
+                    yield status
+                self._pending_tool_status = []
             
             logger.info(f"[{self.session_id}] qwen-agent流式调用完成，响应数量: {len(response)}")
             self.messages.extend(response)
@@ -414,6 +472,23 @@ class BaseAgent(ABC):
                 'error': str(e),
                 'session_id': self.session_id
             }
+    
+    def _handle_tool_status(self, status_info):
+        """处理工具调用状态"""
+        if not hasattr(self, '_pending_tool_status'):
+            self._pending_tool_status = []
+        
+        tool_status_msg = {
+            "type": "tool_status",
+            "tool_status": status_info['type'],
+            "content": status_info['message'],
+            "server_name": status_info.get('server_name', ''),
+            "tool_name": status_info.get('tool_name', ''),
+            "session_id": self.session_id
+        }
+        
+        self._pending_tool_status.append(tool_status_msg)
+        logger.info(f"[{self.session_id}] 工具状态: {status_info['message']}")
     
     def get_history(self) -> List[Dict[str, Any]]:
         """获取会话历史"""
