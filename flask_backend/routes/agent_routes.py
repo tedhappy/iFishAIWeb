@@ -107,23 +107,32 @@ def chat_with_agent():
     
     def generate_stream():
         """生成流式响应"""
+        import sys
         try:
             # 使用Agent的流式聊天方法
             if files:
                 # 如果有文件，需要特殊处理
                 for chunk in agent.chat_stream(message, files[0], deep_thinking=deep_thinking):
-                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                    chunk_data = f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                    yield chunk_data
+                    # 强制刷新输出缓冲区，确保数据立即发送
+                    sys.stdout.flush()
                 # 手动更新会话时间戳并保存
                 session_mgr.touch_session(session_id)
             else:
                 # 使用流式方法
                 for chunk in agent.chat_stream(message, deep_thinking=deep_thinking):
-                    yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                    chunk_data = f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                    yield chunk_data
+                    # 强制刷新输出缓冲区，确保数据立即发送
+                    sys.stdout.flush()
                 # 更新会话时间戳
                 session_mgr.touch_session(session_id)
             
             # 发送结束标记
-            yield f"data: {json.dumps({'type': 'done', 'success': True}, ensure_ascii=False)}\n\n"
+            final_data = f"data: {json.dumps({'type': 'done', 'success': True}, ensure_ascii=False)}\n\n"
+            yield final_data
+            sys.stdout.flush()
             logger.info(f"流式聊天响应完成 - session_id: {session_id}")
             
         except Exception as e:
@@ -134,12 +143,14 @@ def chat_with_agent():
                 'success': False,
                 'error': str(e)
             }
-            yield f"data: {json.dumps(error_chunk, ensure_ascii=False)}\n\n"
+            error_data = f"data: {json.dumps(error_chunk, ensure_ascii=False)}\n\n"
+            yield error_data
+            sys.stdout.flush()
     
     # 返回流式响应
     return Response(
         generate_stream(),
-        mimetype='text/plain',
+        mimetype='text/event-stream',  # 使用标准的SSE MIME类型
         headers={
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
@@ -149,6 +160,7 @@ def chat_with_agent():
             'Access-Control-Allow-Headers': 'Content-Type',
             'X-Accel-Buffering': 'no',  # 禁用 Nginx 缓冲
             'Transfer-Encoding': 'chunked',
+            'Content-Encoding': 'identity',  # 禁用压缩以减少延迟
         }
     )
 

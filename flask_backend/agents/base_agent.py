@@ -373,23 +373,40 @@ class BaseAgent(ABC):
             for func_name, func_obj in original_function_map.items():
                 if hasattr(func_obj, 'call'):
                     original_call = func_obj.call
-                    def create_wrapped_call(original_func, callback_gen):
+                    def create_wrapped_call(original_func):
                         def wrapped_call(*args, **kwargs):
                             # 添加状态回调到kwargs
                             kwargs['status_callback'] = lambda status: self._handle_tool_status(status)
                             return original_func(*args, **kwargs)
                         return wrapped_call
-                    func_obj.call = create_wrapped_call(original_call, tool_status_callback)
+                    func_obj.call = create_wrapped_call(original_call)
+            
+            # 初始化立即发送标志
+            self._immediate_tool_status = False
             
             for resp in self.bot.run(self.messages):
                 response = resp
                 response_count += 1
                 # logger.debug(f"[{self.session_id}] 收到qwen-agent流式响应 #{response_count}")
                 
-                # 检查是否有工具状态需要发送
-                if hasattr(self, '_pending_tool_status'):
+                # 优先检查是否有工具状态需要立即发送
+                if hasattr(self, '_immediate_tool_status') and self._immediate_tool_status:
+                    if hasattr(self, '_pending_tool_status') and self._pending_tool_status:
+                        for status in self._pending_tool_status:
+                            yield status
+                            # 立即刷新输出缓冲区
+                            import sys
+                            sys.stdout.flush()
+                        self._pending_tool_status = []
+                    self._immediate_tool_status = False
+                
+                # 检查是否有其他工具状态需要发送
+                if hasattr(self, '_pending_tool_status') and self._pending_tool_status:
                     for status in self._pending_tool_status:
                         yield status
+                        # 立即刷新输出缓冲区
+                        import sys
+                        sys.stdout.flush()
                     self._pending_tool_status = []
                 
                 # 提取当前响应中的助手回复
@@ -488,6 +505,8 @@ class BaseAgent(ABC):
         }
         
         self._pending_tool_status.append(tool_status_msg)
+        # 设置立即发送标志
+        self._immediate_tool_status = True
         logger.info(f"[{self.session_id}] 工具状态: {status_info['message']}")
     
     def get_history(self) -> List[Dict[str, Any]]:
