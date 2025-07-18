@@ -942,6 +942,10 @@ export const useChatStore = createPersistStore(
         let formalContent = "";
         let isThinking = false;
 
+        // 工具调用状态管理变量（需要在try-catch外部声明以确保在catch块中可访问）
+        let callingTools: string[] = []; // 存储正在调用的工具
+        let completedTools: string[] = []; // 存储已完成的工具
+
         // 更新会话以显示空的机器人消息
         get().updateTargetSession(session, (session) => {
           session.messages = session.messages.concat();
@@ -956,7 +960,6 @@ export const useChatStore = createPersistStore(
           const decoder = new TextDecoder();
           let buffer = "";
           let fullResponse = "";
-          let toolStatusMessages: string[] = []; // 存储所有工具状态消息
 
           while (true) {
             if (controller.signal.aborted) {
@@ -1002,12 +1005,25 @@ export const useChatStore = createPersistStore(
                         botMessage.loadingStage = "generating";
                       }
 
-                      // 如果有思考内容，显示完整格式；否则只显示回答
+                      // 构建完整的消息内容，包含工具状态信息
+                      let currentContent = "";
                       if (thinkingContent) {
-                        botMessage.content = `**🤔 思考过程：**\n\n${thinkingContent}\n\n---\n\n**💬 回答：**\n\n${formalContent}`;
-                      } else {
-                        botMessage.content = formalContent;
+                        currentContent = `**🤔 思考过程：**\n\n${thinkingContent}\n\n`;
                       }
+
+                      // 如果有已完成的工具且没有正在调用的工具，显示成功调用工具信息
+                      if (
+                        completedTools.length > 0 &&
+                        callingTools.length === 0
+                      ) {
+                        currentContent += `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
+                      }
+
+                      if (formalContent) {
+                        currentContent += `---\n\n**💬 回答：**\n\n${formalContent}`;
+                      }
+
+                      botMessage.content = currentContent || formalContent;
                     }
 
                     fullResponse = botMessage.content;
@@ -1017,54 +1033,58 @@ export const useChatStore = createPersistStore(
                       session.messages = session.messages.concat();
                     });
                   } else if (data.type === "tool_status") {
-                    // 处理工具调用状态
-                    const toolStatusMessage =
-                      get().formatToolStatusMessage(data);
+                    // 打印工具状态调试信息
+                    logger.log(
+                      `[工具状态] 状态: ${data.tool_status}, 工具: ${data.tool_name}, 服务: ${data.server_name}, 内容: ${data.content || "无"}`,
+                    );
 
-                    // 根据状态类型处理工具状态消息
+                    // 处理工具调用状态
+                    const toolName =
+                      data.server_name && data.tool_name
+                        ? `${data.server_name}.${data.tool_name}`
+                        : data.tool_name || "unknown";
+
                     if (
                       data.tool_status === "calling" ||
                       data.tool_status === "tool_start"
                     ) {
-                      // 正在调用工具时，替换或添加当前工具状态
-                      const toolKey = data.tool_name || "unknown";
-                      const existingIndex = toolStatusMessages.findIndex(
-                        (msg) =>
-                          msg.includes(`正在调用工具：${toolKey}`) ||
-                          msg.includes(
-                            `正在调用工具：${data.server_name}.${toolKey}`,
-                          ),
-                      );
-
-                      if (existingIndex >= 0) {
-                        toolStatusMessages[existingIndex] =
-                          toolStatusMessage.trim();
-                      } else {
-                        toolStatusMessages.push(toolStatusMessage.trim());
+                      // 正在调用工具时，添加到正在调用列表
+                      if (!callingTools.includes(toolName)) {
+                        callingTools.push(toolName);
+                        logger.log(
+                          `[工具状态] 添加正在调用工具: ${toolName}, 当前列表: [${callingTools.join(", ")}]`,
+                        );
                       }
                     } else if (
                       data.tool_status === "success" ||
                       data.tool_status === "tool_success"
                     ) {
-                      // 工具调用成功时，更新对应的状态消息
-                      const toolKey = data.tool_name || "unknown";
-                      const existingIndex = toolStatusMessages.findIndex(
-                        (msg) =>
-                          msg.includes(`正在调用工具：${toolKey}`) ||
-                          msg.includes(
-                            `正在调用工具：${data.server_name}.${toolKey}`,
-                          ),
-                      );
-
-                      if (existingIndex >= 0) {
-                        toolStatusMessages[existingIndex] =
-                          toolStatusMessage.trim();
-                      } else {
-                        toolStatusMessages.push(toolStatusMessage.trim());
+                      // 工具调用成功时，只添加到已完成列表，不从正在调用列表移除
+                      if (!completedTools.includes(toolName)) {
+                        completedTools.push(toolName);
+                        logger.log(
+                          `[工具状态] 添加已完成工具: ${toolName}, 当前列表: [${completedTools.join(", ")}]`,
+                        );
                       }
-                    } else {
-                      // 其他状态（错误、超时等）
-                      toolStatusMessages.push(toolStatusMessage.trim());
+                    } else if (
+                      data.tool_status === "error" ||
+                      data.tool_status === "timeout"
+                    ) {
+                      // 工具调用失败时，记录失败状态但不从正在调用列表移除
+                      logger.log(
+                        `[工具状态] 工具调用失败: ${toolName}, 状态: ${data.tool_status}`,
+                      );
+                    }
+
+                    // 构建工具状态显示消息
+                    let toolStatusDisplay = "";
+                    if (callingTools.length > 0) {
+                      toolStatusDisplay = `**🔧 正在调用工具：${callingTools.join("，")}**\n\n`;
+                    } else if (
+                      completedTools.length > 0 &&
+                      callingTools.length === 0
+                    ) {
+                      toolStatusDisplay = `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
                     }
 
                     // 构建完整的消息内容
@@ -1073,10 +1093,8 @@ export const useChatStore = createPersistStore(
                       currentContent = `**🤔 思考过程：**\n\n${thinkingContent}\n\n`;
                     }
 
-                    // 添加所有工具状态消息
-                    if (toolStatusMessages.length > 0) {
-                      currentContent += toolStatusMessages.join("\n") + "\n\n";
-                    }
+                    // 添加工具状态显示
+                    currentContent += toolStatusDisplay;
 
                     if (formalContent) {
                       currentContent += `---\n\n**💬 回答：**\n\n${formalContent}`;
@@ -1084,10 +1102,7 @@ export const useChatStore = createPersistStore(
 
                     botMessage.content = currentContent;
                     botMessage.loadingStage =
-                      data.tool_status === "calling" ||
-                      data.tool_status === "tool_start"
-                        ? "tool_calling"
-                        : "generating";
+                      callingTools.length > 0 ? "tool_calling" : "generating";
 
                     // 实时更新UI
                     get().updateTargetSession(session, (session) => {
@@ -1118,15 +1133,23 @@ export const useChatStore = createPersistStore(
           // 完成显示，设置最终状态
           botMessage.streaming = false;
 
+          // 流式响应结束后，清空正在调用工具列表
+          if (callingTools.length > 0) {
+            logger.log(
+              `[工具状态] 流式响应结束，清空正在调用工具列表: [${callingTools.join(", ")}]`,
+            );
+            callingTools.length = 0; // 清空数组
+          }
+
           // 构建最终内容，确保包含工具状态消息
           let finalContent = "";
           if (thinkingContent) {
             finalContent = `**🤔 思考过程：**\n\n${thinkingContent}\n\n`;
           }
 
-          // 保留工具状态消息在最终内容中
-          if (toolStatusMessages.length > 0) {
-            finalContent += toolStatusMessages.join("\n") + "\n\n";
+          // 保留成功调用工具的消息（在正式回答期间不隐藏）
+          if (completedTools.length > 0) {
+            finalContent += `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
           }
 
           if (formalContent) {
@@ -1139,6 +1162,10 @@ export const useChatStore = createPersistStore(
           botMessage.date = new Date().toLocaleString();
           botMessage.isError = false;
           botMessage.loadingStage = undefined;
+
+          logger.log(
+            `[流式响应结束] 最终内容构建完成，已完成工具: [${completedTools.join(", ")}]`,
+          );
 
           // 一次性更新所有状态，避免多次触发UI更新
           get().updateTargetSession(session, (session) => {
@@ -1161,6 +1188,13 @@ export const useChatStore = createPersistStore(
             botMessage.date = new Date().toLocaleString();
             botMessage.isError = false;
             botMessage.loadingStage = undefined;
+            // 清空正在调用工具列表
+            if (callingTools.length > 0) {
+              logger.log(
+                `[工具状态] 用户取消，清空正在调用工具列表: [${callingTools.join(", ")}]`,
+              );
+              callingTools.length = 0;
+            }
             // 不修改content，保留已经打印的内容
           } else {
             // 其他错误，显示错误信息
@@ -1169,6 +1203,13 @@ export const useChatStore = createPersistStore(
             botMessage.date = new Date().toLocaleString();
             botMessage.isError = true;
             botMessage.loadingStage = "error";
+            // 清空正在调用工具列表
+            if (callingTools.length > 0) {
+              logger.log(
+                `[工具状态] 响应出错，清空正在调用工具列表: [${callingTools.join(", ")}]`,
+              );
+              callingTools.length = 0;
+            }
           }
 
           get().updateTargetSession(session, (session) => {
@@ -1610,55 +1651,6 @@ export const useChatStore = createPersistStore(
         set({
           lastInput,
         });
-      },
-
-      /** 格式化工具调用状态消息 */
-      formatToolStatusMessage(data: any): string {
-        const { tool_status, server_name, tool_name, content } = data;
-
-        let statusIcon = "";
-        let statusText = "";
-
-        switch (tool_status) {
-          case "calling":
-          case "tool_start":
-            statusIcon = "🔧";
-            statusText = "正在调用工具";
-            break;
-          case "success":
-          case "tool_success":
-            statusIcon = "✅";
-            statusText = "成功调用工具";
-            break;
-          case "timeout":
-          case "tool_timeout":
-            statusIcon = "⏰";
-            statusText = "工具调用超时";
-            break;
-          case "error":
-          case "tool_error":
-            statusIcon = "❌";
-            statusText = "工具调用失败";
-            break;
-          default:
-            statusIcon = "🔧";
-            statusText = "正在调用工具";
-        }
-
-        let message = `**${statusIcon} ${statusText}**`;
-
-        // 显示工具名称
-        if (server_name && tool_name) {
-          message += `：${server_name}.${tool_name}`;
-        } else if (tool_name) {
-          message += `：${tool_name}`;
-        }
-
-        if (content) {
-          message += `\n\n${content}`;
-        }
-
-        return message + "\n\n";
       },
 
       /** check if the message contains MCP JSON and execute the MCP action */
