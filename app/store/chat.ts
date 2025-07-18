@@ -448,6 +448,52 @@ export const useChatStore = createPersistStore(
         );
       },
 
+      // 清除聊天历史（同时清除前端和后端）
+      async clearChatHistory() {
+        const session = get().currentSession();
+        const agentSessionId = (session as any).agentSessionId;
+
+        // 清除前端上下文
+        get().updateTargetSession(session, (session) => {
+          if (session.clearContextIndex === session.messages.length) {
+            session.clearContextIndex = undefined;
+          } else {
+            session.clearContextIndex = session.messages.length;
+            session.memoryPrompt = ""; // 清除记忆
+          }
+        });
+
+        // 如果是Agent会话，调用后端清除API
+        if (agentSessionId) {
+          try {
+            // 获取后端 API 基础 URL
+            const apiBaseUrl =
+              process.env.NEXT_PUBLIC_API_BASE_URL || "https://www.ifish.me";
+
+            const response = await fetch(
+              `${apiBaseUrl}/flask/agent/clear/${agentSessionId}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+              },
+            );
+
+            if (response.ok) {
+              const result = await response.json();
+              logger.info(`成功清除后端Agent会话历史: ${agentSessionId}`);
+            } else {
+              logger.warn(
+                `清除后端Agent会话历史失败: ${agentSessionId}, 状态码: ${response.status}`,
+              );
+            }
+          } catch (error) {
+            logger.warn(`清除后端Agent会话历史异常: ${agentSessionId}`, error);
+          }
+        }
+      },
+
       currentSession() {
         let index = get().currentSessionIndex;
         const sessions = get().sessions;
