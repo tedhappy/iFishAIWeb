@@ -20,14 +20,10 @@ class TextToImageAgent(BaseAgent):
         """重写MCP配置，指定使用文生图相关的MCP工具
         
         Returns:
-            Dict[str, Any]: 包含ModelScope和MiniMax文生图工具的MCP配置
+            Dict[str, Any]: 包含MiniMax文生图工具的MCP配置
         """
         return {
             "mcpServers": {
-                "ModelScope-Image-Generation-MCP": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/eef5f8c388d047/sse"
-                },
                 "MiniMax-MCP": {
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
@@ -39,7 +35,7 @@ class TextToImageAgent(BaseAgent):
         return """嗨！我是你的专业AI文生图助手小鱼🐟，专门帮你把文字变成精美的图像！🎨
 
 **我的创作能力：**
-• 🖼️ **多平台支持**：集成ModelScope和MiniMax两大AI图像生成平台
+• 🖼️ **专业平台**：集成MiniMax AI图像生成平台
 • 🎯 **精准理解**：准确理解你的描述，生成符合预期的图像
 • ✨ **智能优化**：自动选择最适合的生成模型和参数
 • 📐 **多尺寸支持**：支持不同比例和分辨率的图像生成
@@ -47,7 +43,6 @@ class TextToImageAgent(BaseAgent):
 • 🔄 **快速生成**：利用云端GPU加速，快速出图
 
 **支持的生成平台：**
-- **ModelScope平台**：阿里达摩院开源模型，支持多种AIGC模型
 - **MiniMax平台**：专业的AI内容生成服务，图像质量优秀
 
 **使用建议：**

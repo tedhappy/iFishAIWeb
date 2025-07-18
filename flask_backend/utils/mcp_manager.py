@@ -87,10 +87,6 @@ class MCPManager:
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/7214e0e509b141/sse"
                 },
-                "ModelScope-Image-Generation-MCP": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/eef5f8c388d047/sse"
-                },
                 "MiniMax-MCP": {
                     "type": "sse",
                     "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
