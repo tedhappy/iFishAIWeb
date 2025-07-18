@@ -1079,7 +1079,7 @@ export const useChatStore = createPersistStore(
                     // 构建工具状态显示消息
                     let toolStatusDisplay = "";
                     if (callingTools.length > 0) {
-                      toolStatusDisplay = `**🔧 正在调用工具：${callingTools.join("，")}**\n\n`;
+                      toolStatusDisplay = `**🔧 正在调用工具，请耐心等候：${callingTools.join("，")}**\n\n`;
                     } else if (
                       completedTools.length > 0 &&
                       callingTools.length === 0

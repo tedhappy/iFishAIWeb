@@ -256,7 +256,7 @@ class MCPManager:
                         'type': 'tool_start',
                         'server_name': server_name,
                         'tool_name': tool_name,
-                        'message': f'正在调用工具 {server_name}-{tool_name}'
+                        'message': f'正在调用工具，请耐心等候 {server_name}-{tool_name}'
                     })
                 
                 # 使用捕获的manager实例而不是创建新实例

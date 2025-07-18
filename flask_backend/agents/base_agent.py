@@ -368,18 +368,29 @@ class BaseAgent(ABC):
             last_content_length = 0  # 跟踪上次发送的内容长度
             last_reasoning_length = 0  # 跟踪上次发送的思考内容长度
             
-            # 修改bot的工具调用方法，添加状态回调
+            # 为当前agent实例创建独立的工具调用包装，避免全局状态污染
             original_function_map = getattr(self.bot, 'function_map', {})
+            self._original_tool_calls = {}  # 保存原始的工具调用方法
+            
             for func_name, func_obj in original_function_map.items():
                 if hasattr(func_obj, 'call'):
-                    original_call = func_obj.call
-                    def create_wrapped_call(original_func):
+                    # 保存原始的call方法，以便后续恢复
+                    if not hasattr(func_obj, '_original_call'):
+                        func_obj._original_call = func_obj.call
+                    
+                    # 为当前session创建独立的包装函数
+                    current_session_id = self.session_id
+                    current_handle_method = self._handle_tool_status
+                    
+                    def create_wrapped_call(original_func, session_id, handle_method):
                         def wrapped_call(*args, **kwargs):
-                            # 添加状态回调到kwargs
-                            kwargs['status_callback'] = lambda status: self._handle_tool_status(status)
+                            # 添加状态回调到kwargs，确保回调指向正确的agent实例
+                            kwargs['status_callback'] = lambda status: handle_method(status)
                             return original_func(*args, **kwargs)
                         return wrapped_call
-                    func_obj.call = create_wrapped_call(original_call)
+                    
+                    # 为当前实例创建包装后的调用方法
+                    func_obj.call = create_wrapped_call(func_obj._original_call, current_session_id, current_handle_method)
             
             # 初始化立即发送标志
             self._immediate_tool_status = False
@@ -489,6 +500,13 @@ class BaseAgent(ABC):
                 'error': str(e),
                 'session_id': self.session_id
             }
+        finally:
+            # 恢复工具的原始调用方法，避免影响其他agent实例
+            original_function_map = getattr(self.bot, 'function_map', {})
+            for func_name, func_obj in original_function_map.items():
+                if hasattr(func_obj, '_original_call'):
+                    func_obj.call = func_obj._original_call
+            logger.debug(f"[{self.session_id}] 已恢复工具原始调用方法")
     
     def _handle_tool_status(self, status_info):
         """处理工具调用状态"""

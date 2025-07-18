@@ -207,7 +207,7 @@ class FnCallAgent(Agent):
                                 'type': 'tool_status',
                                 'tool_status': {
                                     'type': 'calling',
-                                    'message': f'正在调用工具 {tool_name}...',
+                                    'message': f'正在调用工具，请耐心等候 {tool_name}...',
                                     'tool_name': tool_name,
                                     'server_name': tool_name.split('-')[0] if '-' in tool_name else ''
                                 }
