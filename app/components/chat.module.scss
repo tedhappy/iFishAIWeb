@@ -313,6 +313,19 @@
 @media only screen and (max-width: 600px) {
   .chat-body-title {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    
+    .window-header-main-title {
+      text-align: center;
+    }
+    
+    .window-header-sub-title {
+      text-align: center;
+    }
   }
 
   .chat-input-actions {

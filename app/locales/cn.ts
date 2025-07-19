@@ -617,7 +617,7 @@ const cn = {
     },
   },
   Store: {
-    DefaultTopic: "开始聊天",
+    DefaultTopic: "新对话",
     BotHello:
       "嗨！我是你的智能伙伴小鱼🐟，很高兴见到你！有什么想聊的或者需要帮助的吗？😊",
     Error: "出错了，稍后重试吧",

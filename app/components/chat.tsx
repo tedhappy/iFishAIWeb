@@ -12,7 +12,8 @@ import SuggestedQuestions, { validateCache } from "./suggested-questions";
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
-import ReturnIcon from "../icons/return.svg";
+import MenuIcon from "../icons/menu.svg";
+import NewchatIcon from "../icons/newchat.svg";
 import CopyIcon from "../icons/copy.svg";
 import SpeakIcon from "../icons/speak.svg";
 import SpeakStopIcon from "../icons/speak-stop.svg";
@@ -1868,7 +1869,7 @@ function Chat(props?: { onShowSidebar?: () => void }) {
             <div className="window-actions">
               <div className={"window-action-button"}>
                 <IconButton
-                  icon={<ReturnIcon />}
+                  icon={<MenuIcon />}
                   bordered
                   title={Locale.Chat.Actions.ChatList}
                   onClick={() => {
@@ -1899,6 +1900,21 @@ function Chat(props?: { onShowSidebar?: () => void }) {
               {Locale.Chat.SubTitle(session.messages.length)}
             </div>
           </div>
+
+          {isMobileScreen && (
+            <div className="window-actions">
+              <div className={"window-action-button"}>
+                <IconButton
+                  icon={<NewchatIcon />}
+                  bordered
+                  title={"添加"}
+                  onClick={() => {
+                    navigate(Path.NewChat);
+                  }}
+                />
+              </div>
+            </div>
+          )}
           {/* <div className="window-actions">
             <div className="window-action-button">
               <IconButton
