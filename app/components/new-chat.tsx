@@ -160,7 +160,7 @@ export function NewChat() {
               style={{
                 width: "auto",
                 height: "auto",
-                background: "#fff",
+                background: "transparent",
                 display: "block",
               }}
               alt="mask-top"

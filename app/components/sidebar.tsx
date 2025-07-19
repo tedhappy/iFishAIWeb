@@ -478,17 +478,24 @@ export function SideBar(props: {
               >
                 <div
                   style={{
-                    background: "#fff",
+                    background: "var(--white)",
                     borderRadius: 8,
                     padding: 32,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    boxShadow: "var(--card-shadow)",
+                    border: "var(--border-in-light)",
                     minWidth: 320,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                   }}
                 >
-                  <div style={{ fontSize: 18, marginBottom: 16 }}>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      marginBottom: 16,
+                      color: "var(--black)",
+                    }}
+                  >
                     请输入管理员密码
                   </div>
                   <input
@@ -541,9 +548,10 @@ export function SideBar(props: {
                       marginTop: 16,
                       background: "none",
                       border: "none",
-                      color: "#888",
+                      color: "var(--black)",
                       fontSize: 14,
                       cursor: "pointer",
+                      opacity: 0.6,
                     }}
                   >
                     取消
