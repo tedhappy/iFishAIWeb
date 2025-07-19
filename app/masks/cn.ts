@@ -41,46 +41,46 @@ export const CN_MASKS: BuiltinMask[] = [
     builtin: true,
     createdAt: 1688899480510,
   },
-  {
-    avatar: "1f3a8",
-    name: "AI文生图",
-    agentType: "text_to_image",
-    context: [
-      {
-        id: "text-to-image-0",
-        role: "system",
-        content:
-          "我是AI文生图助手，可以根据您的文字描述生成精美的图像。支持多种风格和尺寸，让您的创意变成现实。",
-        date: "",
-      },
-      {
-        id: "text-to-image-1",
-        role: "user",
-        content: "你能根据描述生成图片吗？",
-        date: "",
-      },
-      {
-        id: "text-to-image-2",
-        role: "assistant",
-        content:
-          "当然可以！我可以根据您的描述生成图像，支持：\n1. 多种艺术风格（写实、卡通、油画等）\n2. 不同尺寸规格\n3. 高质量图像输出\n4. 创意场景构图\n\n请详细描述您想要的图像内容，我会为您创作出精美的作品。",
-        date: "",
-      },
-    ],
-    modelConfig: {
-      model: "qwen-turbo-latest",
-      temperature: 0.7,
-      max_tokens: 2000,
-      presence_penalty: 0,
-      frequency_penalty: 0,
-      sendMemory: true,
-      historyMessageCount: 8,
-      compressMessageLengthThreshold: 1000,
-    },
-    lang: "cn",
-    builtin: true,
-    createdAt: 1688899480511,
-  },
+  // {
+  //   avatar: "1f3a8",
+  //   name: "AI文生图",
+  //   agentType: "text_to_image",
+  //   context: [
+  //     {
+  //       id: "text-to-image-0",
+  //       role: "system",
+  //       content:
+  //         "我是AI文生图助手，可以根据您的文字描述生成精美的图像。支持多种风格和尺寸，让您的创意变成现实。",
+  //       date: "",
+  //     },
+  //     {
+  //       id: "text-to-image-1",
+  //       role: "user",
+  //       content: "你能根据描述生成图片吗？",
+  //       date: "",
+  //     },
+  //     {
+  //       id: "text-to-image-2",
+  //       role: "assistant",
+  //       content:
+  //         "当然可以！我可以根据您的描述生成图像，支持：\n1. 多种艺术风格（写实、卡通、油画等）\n2. 不同尺寸规格\n3. 高质量图像输出\n4. 创意场景构图\n\n请详细描述您想要的图像内容，我会为您创作出精美的作品。",
+  //       date: "",
+  //     },
+  //   ],
+  //   modelConfig: {
+  //     model: "qwen-turbo-latest",
+  //     temperature: 0.7,
+  //     max_tokens: 2000,
+  //     presence_penalty: 0,
+  //     frequency_penalty: 0,
+  //     sendMemory: true,
+  //     historyMessageCount: 8,
+  //     compressMessageLengthThreshold: 1000,
+  //   },
+  //   lang: "cn",
+  //   builtin: true,
+  //   createdAt: 1688899480511,
+  // }, // 隐藏AI文生图助手
   {
     avatar: "1f374",
     name: "美食推荐",
