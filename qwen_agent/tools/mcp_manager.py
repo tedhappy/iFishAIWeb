@@ -241,71 +241,22 @@ class MCPManager:
             parameters = tool_parameters
 
             def call(self, params: Union[str, dict], **kwargs) -> str:
-                import time
-                import concurrent.futures
-                
                 tool_args = json.loads(params)
                 logger.info(f'[MCP调用] 开始执行MCP工具 - 服务器: {server_name}, 工具: {tool_name}, 参数: {tool_args}')
-                
-                # 获取状态回调函数（如果提供）
-                status_callback = kwargs.get('status_callback')
-                
-                # 发送工具调用开始状态
-                if status_callback:
-                    status_callback({
-                        'type': 'tool_start',
-                        'server_name': server_name,
-                        'tool_name': tool_name,
-                        'message': f'正在调用工具，请耐心等候 {server_name}-{tool_name}'
-                    })
                 
                 # 使用捕获的manager实例而不是创建新实例
                 client = manager_instance.clients[server_name]
                 future = asyncio.run_coroutine_threadsafe(client.execute_function(tool_name, tool_args), manager_instance.loop)
                 
                 try:
-                    # 设置30秒超时
-                    result = future.result(timeout=30)
+                    result = future.result()
                     logger.info(f'[MCP调用] MCP工具执行成功 - 服务器: {server_name}, 工具: {tool_name}, 结果长度: {len(str(result)) if result else 0}')
                     
-                    # 发送工具调用成功状态
-                    if status_callback:
-                        status_callback({
-                            'type': 'tool_success',
-                            'server_name': server_name,
-                            'tool_name': tool_name,
-                            'message': f'成功调用工具 {server_name}-{tool_name}'
-                        })
-                    
                     return result
-                except concurrent.futures.TimeoutError:
-                    logger.error(f'[MCP调用] MCP工具调用超时 - 服务器: {server_name}, 工具: {tool_name}')
-                    
-                    # 发送工具调用超时状态
-                    if status_callback:
-                        status_callback({
-                            'type': 'tool_timeout',
-                            'server_name': server_name,
-                            'tool_name': tool_name,
-                            'message': f'工具调用超时 {server_name}-{tool_name}，请稍后重试'
-                        })
-                    
-                    # 尝试取消future
-                    future.cancel()
-                    return f'工具调用超时：{server_name}-{tool_name}，请稍后重试'
                 except Exception as e:
                     logger.error(f'[MCP调用] MCP工具执行失败 - 服务器: {server_name}, 工具: {tool_name}, 错误: {e}')
-                    
-                    # 发送工具调用失败状态
-                    if status_callback:
-                        status_callback({
-                            'type': 'tool_error',
-                            'server_name': server_name,
-                            'tool_name': tool_name,
-                            'message': f'工具调用失败 {server_name}-{tool_name}: {str(e)}'
-                        })
-                    
-                    return f'工具调用失败：{str(e)}'
+                    return None
+                return 'Function executed'
 
         ToolClass.__name__ = f'{register_name}_Class'
         return ToolClass()
