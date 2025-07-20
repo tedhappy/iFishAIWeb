@@ -232,8 +232,7 @@ function AuthorModal(props: { onClose: () => void }) {
             <span role="img" aria-label="robot" style={{ marginRight: 6 }}>
               🤖
             </span>
-            本网站是一个多功能智能对话平台，支持多种AI
-            Agent（智能体）和丰富的应用场景。用户可以通过选择不同的Agent，体验智能服务。平台界面简洁，操作便捷，致力于为用户提供高效、智能的AI助手体验。
+            小鱼AI是一个基于Qwen3框架开发的多功能智能对话平台，平台内置多种专业Agent助手，满足不同应用场景需求；同时具备工具扩展能力，支持MCP协议接入外部工具和服务。用户可以通过选择不同的Agent，体验智能服务。平台兼容Web和移动端，支持多种交互方式，为用户提供全面的AI智能服务体验。
           </div>
           {/* 作者联系方式 */}
           <div>
@@ -246,7 +245,7 @@ function AuthorModal(props: { onClose: () => void }) {
             <span role="img" aria-label="email">
               📧
             </span>{" "}
-            邮箱：why0229@foxmail.com
+            邮箱：tedhappy0229@gmail.com
           </div>
           <div>
             <span role="img" aria-label="wechat">
