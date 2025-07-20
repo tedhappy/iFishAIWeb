@@ -1154,6 +1154,43 @@ export const useChatStore = createPersistStore(
                     get().updateTargetSession(session, (session) => {
                       session.messages = session.messages.concat();
                     });
+                  } else if (data.type === "chart") {
+                    // 处理图表消息
+                    logger.log(
+                      `[图表消息] 接收到图表: URL=${data.chart_url}, Alt=${data.alt_text}`,
+                    );
+
+                    if (data.chart_url) {
+                      // 将图表以Markdown格式插入到正式回答内容中
+                      const chartMarkdown = `\n\n![${data.alt_text || "图表"}](${data.chart_url})\n\n`;
+                      formalContent += chartMarkdown;
+
+                      // 构建完整的消息内容
+                      let currentContent = "";
+                      if (thinkingContent) {
+                        currentContent = `**🤔 思考过程：**\n\n${thinkingContent}\n\n`;
+                      }
+
+                      // 如果有已完成的工具且没有正在调用的工具，显示成功调用工具信息
+                      if (
+                        completedTools.length > 0 &&
+                        callingTools.length === 0
+                      ) {
+                        currentContent += `**✅ 成功调用MCP工具：${completedTools.join("，")}**\n\n`;
+                      }
+
+                      if (formalContent) {
+                        currentContent += `---\n\n**💬 回答：**\n\n${formalContent}`;
+                      }
+
+                      botMessage.content = currentContent || formalContent;
+                      fullResponse = botMessage.content;
+
+                      // 实时更新UI
+                      get().updateTargetSession(session, (session) => {
+                        session.messages = session.messages.concat();
+                      });
+                    }
                   } else if (data.type === "complete") {
                     // 流式响应完成
                     logger.info(

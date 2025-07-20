@@ -523,6 +523,23 @@ class BaseAgent(ABC):
         }
         
         self._pending_tool_status.append(tool_status_msg)
+        
+        # 检查工具完成状态，如果包含图表信息则发送chart消息
+        if status_info['type'] == 'completed' and 'result' in status_info:
+            logger.info(f"[{self.session_id}] [图表检测] 工具完成，检查结果中是否包含图表: {status_info['result'][:200]}...")
+            chart_info = self._extract_chart_info(status_info['result'])
+            if chart_info:
+                chart_msg = {
+                    "type": "chart",
+                    "chart_url": chart_info['url'],
+                    "alt_text": chart_info['alt'],
+                    "session_id": self.session_id
+                }
+                self._pending_tool_status.append(chart_msg)
+                logger.info(f"[{self.session_id}] [图表检测] 检测到图表，已添加chart消息: URL={chart_info['url']}, Alt={chart_info['alt']}")
+            else:
+                logger.info(f"[{self.session_id}] [图表检测] 工具结果中未检测到图表")
+        
         # 设置立即发送标志
         self._immediate_tool_status = True
         logger.info(f"[{self.session_id}] 工具状态: {status_info['message']}")
@@ -538,6 +555,35 @@ class BaseAgent(ABC):
     def load_history(self, messages: List[Dict[str, Any]]):
         """加载历史消息"""
         self.messages = messages
+    
+    def _extract_chart_info(self, result_text: str) -> dict:
+        """从工具返回结果中提取图表信息
+        
+        Args:
+            result_text: 工具返回的结果文本
+            
+        Returns:
+            dict: 图表信息字典，包含url、alt、markdown字段，如果没有图表则返回None
+        """
+        import re
+        
+        # 匹配Markdown格式的图片：![alt](url)
+        pattern = r'!\[([^\]]*?)\]\(([^\)]+?)\)'
+        matches = re.findall(pattern, result_text)
+        
+        if matches:
+            # 取第一个匹配的图片
+            alt_text, img_url = matches[0]
+            
+            # 检查是否是本地生成的图表（包含/flask/static/images/路径）
+            if '/flask/static/images/' in img_url:
+                return {
+                    "url": img_url,
+                    "alt": alt_text or "图表",
+                    "markdown": f"![{alt_text}]({img_url})"
+                }
+        
+        return None
     
     def get_system_prompt(self) -> str:
         """获取系统提示词"""

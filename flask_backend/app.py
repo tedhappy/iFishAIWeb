@@ -18,7 +18,7 @@ if flask_backend_path not in sys.path:
     sys.path.insert(0, flask_backend_path)
 
 # 然后导入其他模块
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from routes.agent_routes import agent_bp
 from routes.auth_routes import auth_bp
@@ -28,7 +28,7 @@ from utils.logger import logger
 from utils.session_manager import SessionManager
 from utils.mcp_manager import mcp_manager
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)  # 允许跨域请求
 
 # 配置
@@ -121,6 +121,15 @@ session_manager = SessionManager(session_file=session_file_path)
 
 # 将会话管理器添加到应用上下文中，供其他模块使用
 app.session_manager = session_manager
+
+@app.route('/flask/static/<path:filename>')
+def serve_static_file(filename):
+    """提供静态文件服务"""
+    try:
+        return send_from_directory(app.static_folder, filename)
+    except Exception as e:
+        logger.error(f"静态文件服务错误: {e}")
+        return jsonify({'error': '文件未找到'}), 404
 
 @app.route('/flask/health', methods=['GET'])
 def health_check():

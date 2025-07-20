@@ -70,7 +70,7 @@ class ExcSQLTool(BaseTool):
                 self._generate_chart(df, save_path)
                 logger.info(f"图表生成成功 - 路径: {save_path}")
                 
-                img_url = f'/static/images/{filename}'
+                img_url = f'/flask/static/images/{filename}'
                 img_md = f'![图表]({img_url})'
                 
                 logger.info(f"SQL工具执行完成 - 数据行数: {len(df)}, 列: {list(df.columns)}")

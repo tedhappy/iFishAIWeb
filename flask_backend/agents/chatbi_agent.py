@@ -87,6 +87,20 @@ class StockSQLTool(BaseTool):
     def call(self, params: str, **kwargs) -> str:
         logger.info(f"ExcSQLTool开始执行 - 参数: {params[:200]}...")
         
+        # 获取状态回调函数
+        status_callback = kwargs.get('status_callback')
+        
+        # 发送工具开始状态
+        if status_callback:
+            try:
+                status_callback({
+                    'type': 'started',
+                    'message': f'正在执行SQL查询和数据可视化，请稍候...',
+                    'tool_name': 'StockSQLTool'
+                })
+            except Exception as e:
+                logger.warning(f'SQL工具状态回调失败: {e}')
+        
         try:
             args = json.loads(params)
             sql_input = args['sql_input']
@@ -112,6 +126,17 @@ class StockSQLTool(BaseTool):
                 
                 # 只返回表格
                 if len(df) == 1 or not need_visualize:
+                    # 发送工具完成状态（无图表）
+                    if status_callback:
+                        try:
+                            status_callback({
+                                'type': 'completed',
+                                'message': f'SQL查询完成',
+                                'tool_name': 'StockSQLTool',
+                                'result': md
+                            })
+                        except Exception as e:
+                            logger.warning(f'SQL工具完成状态回调失败: {e}')
                     return md
                 
                 desc_md = df.describe().to_markdown()
@@ -125,20 +150,60 @@ class StockSQLTool(BaseTool):
                 # 智能选择可视化方式
                 generate_smart_chart_png(df, save_path)
                 
-                img_url = f'/static/images/{filename}'
+                img_url = f'/flask/static/images/{filename}'
                 img_md = f'![图表]({img_url})'
                 
-                return f"{md}\n\n{desc_md}\n\n{img_md}"
+                result = f"{md}\n\n{desc_md}\n\n{img_md}"
+                
+                # 发送工具完成状态（有图表）
+                if status_callback:
+                    try:
+                        status_callback({
+                            'type': 'completed',
+                            'message': f'SQL查询和数据可视化完成',
+                            'tool_name': 'StockSQLTool',
+                            'result': result
+                        })
+                    except Exception as e:
+                        logger.warning(f'SQL工具完成状态回调失败: {e}')
+                
+                return result
                 
             except Exception as e:
                 logger.error(f"SQL执行错误: {str(e)}")
-                return f"SQL执行或可视化出错: {str(e)}"
+                error_msg = f"SQL执行或可视化出错: {str(e)}"
+                
+                # 发送工具错误状态
+                if status_callback:
+                    try:
+                        status_callback({
+                            'type': 'error',
+                            'message': f'SQL查询失败: {str(e)}',
+                            'tool_name': 'StockSQLTool'
+                        })
+                    except Exception as e:
+                        logger.warning(f'SQL工具错误状态回调失败: {e}')
+                
+                return error_msg
             finally:
                 engine.dispose()
                 
         except Exception as e:
             logger.error(f"ExcSQLTool执行异常: {str(e)}")
-            return f"工具执行错误: {str(e)}"
+            error_msg = f"工具执行错误: {str(e)}"
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'SQL工具执行失败: {str(e)}',
+                        'tool_name': 'StockSQLTool'
+                    })
+                except Exception as e:
+                    logger.warning(f'SQL工具错误状态回调失败: {e}')
+            
+            return error_msg
 
 # 注册ARIMA股票预测工具
 @register_tool('arima_stock')
@@ -159,6 +224,20 @@ class ArimaStockTool(BaseTool):
     
     def call(self, params: str, **kwargs) -> str:
         logger.info(f"ArimaStockTool开始执行 - 参数: {params}")
+        
+        # 获取状态回调函数
+        status_callback = kwargs.get('status_callback')
+        
+        # 发送工具开始状态
+        if status_callback:
+            try:
+                status_callback({
+                    'type': 'started',
+                    'message': f'正在进行ARIMA预测分析，请稍候...',
+                    'tool_name': 'ArimaStockTool'
+                })
+            except Exception as e:
+                logger.warning(f'ARIMA工具状态回调失败: {e}')
         
         try:
             args = json.loads(params)
@@ -230,14 +309,41 @@ class ArimaStockTool(BaseTool):
             plt.savefig(save_path)
             plt.close()
             
-            img_url = f'/static/images/{filename}'
+            img_url = f'/flask/static/images/{filename}'
             img_md = f'![ARIMA预测]({img_url})'
             
-            return f"{pred_df.to_markdown(index=False)}\n\n{img_md}"
+            result = f"{pred_df.to_markdown(index=False)}\n\n{img_md}"
+            
+            # 发送工具完成状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'completed',
+                        'message': f'ARIMA预测分析完成',
+                        'tool_name': 'ArimaStockTool',
+                        'result': result
+                    })
+                except Exception as e:
+                    logger.warning(f'ARIMA工具完成状态回调失败: {e}')
+            
+            return result
             
         except Exception as e:
             logger.error(f"ARIMA建模或预测出错: {str(e)}")
-            return f'ARIMA建模或预测出错: {str(e)}'
+            error_msg = f'ARIMA建模或预测出错: {str(e)}'
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'ARIMA预测分析失败: {str(e)}',
+                        'tool_name': 'ArimaStockTool'
+                    })
+                except Exception as e:
+                    logger.warning(f'ARIMA工具错误状态回调失败: {e}')
+            
+            return error_msg
 
 # 注册布林带检测工具
 @register_tool('boll_detection')
@@ -263,6 +369,20 @@ class BollDetectionTool(BaseTool):
     
     def call(self, params: str, **kwargs) -> str:
         logger.info(f"BollDetectionTool开始执行 - 参数: {params}")
+        
+        # 获取状态回调函数
+        status_callback = kwargs.get('status_callback')
+        
+        # 发送工具开始状态
+        if status_callback:
+            try:
+                status_callback({
+                    'type': 'started',
+                    'message': f'正在进行布林带异常点检测，请稍候...',
+                    'tool_name': 'BollDetectionTool'
+                })
+            except Exception as e:
+                logger.warning(f'布林带工具状态回调失败: {e}')
         
         try:
             args = json.loads(params)
@@ -347,14 +467,41 @@ class BollDetectionTool(BaseTool):
             plt.savefig(save_path)
             plt.close()
             
-            img_url = f'/static/images/{filename}'
+            img_url = f'/flask/static/images/{filename}'
             img_md = f'![布林带检测]({img_url})'
             
-            return f"{result_md}\n\n{img_md}"
+            result = f"{result_md}\n\n{img_md}"
+            
+            # 发送工具完成状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'completed',
+                        'message': f'布林带异常点检测完成',
+                        'tool_name': 'BollDetectionTool',
+                        'result': result
+                    })
+                except Exception as e:
+                    logger.warning(f'布林带工具完成状态回调失败: {e}')
+            
+            return result
             
         except Exception as e:
             logger.error(f"布林带检测出错: {str(e)}")
-            return f"布林带检测出错: {str(e)}"
+            error_msg = f"布林带检测出错: {str(e)}"
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'布林带异常点检测失败: {str(e)}',
+                        'tool_name': 'BollDetectionTool'
+                    })
+                except Exception as e:
+                    logger.warning(f'布林带工具错误状态回调失败: {e}')
+            
+            return error_msg
 
 # 注册Prophet周期性分析工具
 @register_tool('prophet_analysis')
@@ -380,6 +527,20 @@ class ProphetAnalysisTool(BaseTool):
     
     def call(self, params: str, **kwargs) -> str:
         logger.info(f"ProphetAnalysisTool开始执行 - 参数: {params}")
+        
+        # 获取状态回调函数
+        status_callback = kwargs.get('status_callback')
+        
+        # 发送工具开始状态
+        if status_callback:
+            try:
+                status_callback({
+                    'type': 'started',
+                    'message': f'正在进行Prophet周期性分析，请稍候...',
+                    'tool_name': 'ProphetAnalysisTool'
+                })
+            except Exception as e:
+                logger.warning(f'Prophet工具状态回调失败: {e}')
         
         try:
             args = json.loads(params)
@@ -435,14 +596,41 @@ class ProphetAnalysisTool(BaseTool):
             fig.savefig(save_path)
             plt.close(fig)
             
-            img_url = f'/static/images/{filename}'
+            img_url = f'/flask/static/images/{filename}'
             img_md = f'![Prophet周期分解]({img_url})'
             
-            return f"Prophet周期性分解（趋势、周、年）：\n\n{img_md}"
+            result = f"Prophet周期性分解（趋势、周、年）：\n\n{img_md}"
+            
+            # 发送工具完成状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'completed',
+                        'message': f'Prophet周期性分析完成',
+                        'tool_name': 'ProphetAnalysisTool',
+                        'result': result
+                    })
+                except Exception as e:
+                    logger.warning(f'Prophet工具完成状态回调失败: {e}')
+            
+            return result
             
         except Exception as e:
             logger.error(f"Prophet建模或分解出错: {str(e)}")
-            return f'Prophet建模或分解出错: {str(e)}'
+            error_msg = f'Prophet建模或分解出错: {str(e)}'
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'Prophet周期性分析失败: {str(e)}',
+                        'tool_name': 'ProphetAnalysisTool'
+                    })
+                except Exception as e:
+                    logger.warning(f'Prophet工具错误状态回调失败: {e}')
+            
+            return error_msg
 
 
 
@@ -464,10 +652,10 @@ class ChatBIAgent(BaseAgent):
     
     def get_agent_description(self) -> str:
         """重写Agent描述"""
-        return '专业的股票数据分析助手🐟，（数据均来自于网络公开数据）专注于中国股票分析，擅长SQL查询、数据可视化、股票预测和技术分析！'
+        return '专业的股票数据分析助手🐟，【数据均来自于网络公开数据】专注于中国股票分析，擅长SQL查询、数据可视化、股票预测和技术分析！'
     
     def get_system_prompt(self) -> str:
-        return """嗨！我是你的专业股票数据分析助手小鱼🐟，（数据均来自于网络公开数据）专注于中国股票分析的强大功能！📊
+        return """嗨！我是你的专业股票数据分析助手小鱼🐟，【数据均来自于网络公开数据】专注于中国股票分析的强大功能！📊
 
 **我的专业能力：**
 • 📈 **SQL数据查询**：复杂的股票数据库查询，多维度分析（stock_sql工具）

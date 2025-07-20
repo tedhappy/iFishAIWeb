@@ -291,6 +291,34 @@ function MarkDownContent(props: { content: string }) {
         pre: PreCode,
         code: CustomCode,
         p: (pProps) => <p {...pProps} dir="auto" />,
+        img: (imgProps) => {
+          const src = imgProps.src || "";
+          let fullSrc = src;
+          // 如果是相对路径且以/flask/开头，需要添加API基础URL
+          if (src.startsWith("/flask/")) {
+            const apiBaseUrl =
+              process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+            fullSrc = `${apiBaseUrl}${src}`;
+          }
+
+          // 实现qwen-agent原生效果：默认显示小图，点击后显示大图
+          return (
+            <img
+              {...imgProps}
+              src={fullSrc}
+              alt={imgProps.alt || ""}
+              style={{
+                maxWidth: "200px",
+                maxHeight: "150px",
+                cursor: "pointer",
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                ...imgProps.style,
+              }}
+              onClick={() => showImageModal(fullSrc)}
+            />
+          );
+        },
         a: (aProps) => {
           const href = aProps.href || "";
           if (/\.(aac|mp3|opus|wav)$/.test(href)) {
