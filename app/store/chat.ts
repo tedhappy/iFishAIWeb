@@ -1062,7 +1062,7 @@ export const useChatStore = createPersistStore(
                         completedTools.length > 0 &&
                         callingTools.length === 0
                       ) {
-                        currentContent += `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
+                        currentContent += `**✅ 成功调用MCP工具：${completedTools.join("，")}**\n\n`;
                       }
 
                       if (formalContent) {
@@ -1125,12 +1125,12 @@ export const useChatStore = createPersistStore(
                     // 构建工具状态显示消息
                     let toolStatusDisplay = "";
                     if (callingTools.length > 0) {
-                      toolStatusDisplay = `**🔧 正在调用工具，请耐心等候：${callingTools.join("，")}**\n\n`;
+                      toolStatusDisplay = `**🔧 正在调用MCP工具，请耐心等候：${callingTools.join("，")}**\n\n`;
                     } else if (
                       completedTools.length > 0 &&
                       callingTools.length === 0
                     ) {
-                      toolStatusDisplay = `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
+                      toolStatusDisplay = `**✅ 成功调用MCP工具：${completedTools.join("，")}**\n\n`;
                     }
 
                     // 构建完整的消息内容
@@ -1195,7 +1195,7 @@ export const useChatStore = createPersistStore(
 
           // 保留成功调用工具的消息（在正式回答期间不隐藏）
           if (completedTools.length > 0) {
-            finalContent += `**✅ 成功调用工具：${completedTools.join("，")}**\n\n`;
+            finalContent += `**✅ 成功调用MCP工具：${completedTools.join("，")}**\n\n`;
           }
 
           if (formalContent) {

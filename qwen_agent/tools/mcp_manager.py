@@ -244,6 +244,21 @@ class MCPManager:
                 tool_args = json.loads(params)
                 logger.info(f'[MCP调用] 开始执行MCP工具 - 服务器: {server_name}, 工具: {tool_name}, 参数: {tool_args}')
                 
+                # 获取状态回调函数
+                status_callback = kwargs.get('status_callback')
+                
+                # 发送工具调用开始状态
+                if status_callback:
+                    try:
+                        status_callback({
+                            'type': 'tool_start',
+                            'message': f'正在调用MCP工具，请耐心等候: {tool_name}',
+                            'server_name': server_name,
+                            'tool_name': tool_name
+                        })
+                    except Exception as e:
+                        logger.warning(f'[MCP调用] 状态回调失败: {e}')
+                
                 # 使用捕获的manager实例而不是创建新实例
                 client = manager_instance.clients[server_name]
                 future = asyncio.run_coroutine_threadsafe(client.execute_function(tool_name, tool_args), manager_instance.loop)
@@ -252,9 +267,34 @@ class MCPManager:
                     result = future.result()
                     logger.info(f'[MCP调用] MCP工具执行成功 - 服务器: {server_name}, 工具: {tool_name}, 结果长度: {len(str(result)) if result else 0}')
                     
+                    # 发送工具调用成功状态
+                    if status_callback:
+                        try:
+                            status_callback({
+                                'type': 'tool_success',
+                                'message': f'成功调用MCP工具: {tool_name}',
+                                'server_name': server_name,
+                                'tool_name': tool_name
+                            })
+                        except Exception as e:
+                            logger.warning(f'[MCP调用] 状态回调失败: {e}')
+                    
                     return result
                 except Exception as e:
                     logger.error(f'[MCP调用] MCP工具执行失败 - 服务器: {server_name}, 工具: {tool_name}, 错误: {e}')
+                    
+                    # 发送工具调用失败状态
+                    if status_callback:
+                        try:
+                            status_callback({
+                                'type': 'error',
+                                'message': f'MCP工具调用失败: {tool_name} - {str(e)}',
+                                'server_name': server_name,
+                                'tool_name': tool_name
+                            })
+                        except Exception as e:
+                            logger.warning(f'[MCP调用] 状态回调失败: {e}')
+                    
                     return None
                 return 'Function executed'
 
