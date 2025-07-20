@@ -130,10 +130,6 @@ export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
         id: "chatbi-stock-prophet-1",
         text: "分析国泰君安近一年的周期性规律",
       },
-      {
-        id: "chatbi-stock-boll-1",
-        text: "检测中芯国际近一年的超买超卖点",
-      },
     ],
     description:
       "专业的股票数据分析助手🐟，专注于股票分析（贵州茅台、五粮液、国泰君安、中芯国际），提供SQL查询、数据可视化、股票预测和技术分析！",
