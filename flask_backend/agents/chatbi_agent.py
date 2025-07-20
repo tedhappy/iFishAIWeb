@@ -94,7 +94,7 @@ class StockSQLTool(BaseTool):
         if status_callback:
             try:
                 status_callback({
-                    'type': 'started',
+                    'type': 'tool_start',
                     'message': f'正在执行SQL查询和数据可视化，请稍候...',
                     'tool_name': 'StockSQLTool'
                 })
@@ -130,11 +130,11 @@ class StockSQLTool(BaseTool):
                     if status_callback:
                         try:
                             status_callback({
-                                'type': 'completed',
-                                'message': f'SQL查询完成',
-                                'tool_name': 'StockSQLTool',
-                                'result': md
-                            })
+                            'type': 'success',
+                            'message': f'SQL查询完成',
+                            'tool_name': 'StockSQLTool',
+                            'result': md
+                        })
                         except Exception as e:
                             logger.warning(f'SQL工具完成状态回调失败: {e}')
                     return md
@@ -159,11 +159,11 @@ class StockSQLTool(BaseTool):
                 if status_callback:
                     try:
                         status_callback({
-                            'type': 'completed',
-                            'message': f'SQL查询和数据可视化完成',
-                            'tool_name': 'StockSQLTool',
-                            'result': result
-                        })
+                        'type': 'success',
+                        'message': f'SQL查询和数据可视化完成',
+                        'tool_name': 'StockSQLTool',
+                        'result': result
+                    })
                     except Exception as e:
                         logger.warning(f'SQL工具完成状态回调失败: {e}')
                 
@@ -232,7 +232,7 @@ class ArimaStockTool(BaseTool):
         if status_callback:
             try:
                 status_callback({
-                    'type': 'started',
+                    'type': 'tool_start',
                     'message': f'正在进行ARIMA预测分析，请稍候...',
                     'tool_name': 'ArimaStockTool'
                 })
@@ -535,7 +535,7 @@ class ProphetAnalysisTool(BaseTool):
         if status_callback:
             try:
                 status_callback({
-                    'type': 'started',
+                    'type': 'tool_start',
                     'message': f'正在进行Prophet周期性分析，请稍候...',
                     'tool_name': 'ProphetAnalysisTool'
                 })
@@ -605,7 +605,7 @@ class ProphetAnalysisTool(BaseTool):
             if status_callback:
                 try:
                     status_callback({
-                        'type': 'completed',
+                        'type': 'success',
                         'message': f'Prophet周期性分析完成',
                         'tool_name': 'ProphetAnalysisTool',
                         'result': result
