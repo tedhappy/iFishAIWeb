@@ -28,7 +28,7 @@ class SessionManager:
         self.agent_types = {
             # 'ticket': TicketAgent,  # 隐藏门票助手
             'general': GeneralAgent,  # 通用助手
-            'chatbi': ChatBIAgent,  # ChatBI助手
+            'chatbi': ChatBIAgent,  # 股票分析助手
             # 'text_to_image': TextToImageAgent,  # 隐藏AI文生图助手
             'food_recommendation': FoodRecommendationAgent,  # 美食推荐助手
             'train_ticket': TrainTicketAgent,  # 火车票查询助手

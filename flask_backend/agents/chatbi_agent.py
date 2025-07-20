@@ -14,224 +14,510 @@ import json
 import numpy as np
 from typing import List
 from utils.logger import logger
+from datetime import datetime, timedelta
+from statsmodels.tsa.arima.model import ARIMA
+from prophet import Prophet
 
 # 解决中文显示问题
 plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'SimSun', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
 
-# 注册ChatBI SQL执行工具
-@register_tool('chatbi_sql')
-class ChatBISQLTool(BaseTool):
-    """ChatBI SQL查询工具"""
-    description = '执行商业智能SQL查询，生成专业的数据分析报告和可视化图表'
+# 通用图表生成函数
+def generate_smart_chart_png(df_sql, save_path):
+    """智能选择可视化方式"""
+    columns = df_sql.columns
+    if len(df_sql) == 0 or len(columns) < 2:
+        plt.figure(figsize=(6, 4))
+        plt.text(0.5, 0.5, '无可视化数据', ha='center', va='center', fontsize=16)
+        plt.axis('off')
+        plt.savefig(save_path)
+        plt.close()
+        return
+    x_col = columns[0]
+    y_cols = columns[1:]
+    x = df_sql[x_col]
+    # 如果数据点较多，自动采样10个点
+    if len(df_sql) > 20:
+        idx = np.linspace(0, len(df_sql) - 1, 10, dtype=int)
+        x = x.iloc[idx]
+        df_plot = df_sql.iloc[idx]
+        chart_type = 'line'
+    else:
+        df_plot = df_sql
+        chart_type = 'bar'
+    plt.figure(figsize=(10, 6))
+    for y_col in y_cols:
+        if chart_type == 'bar':
+            plt.bar(df_plot[x_col], df_plot[y_col], label=str(y_col))
+        else:
+            plt.plot(df_plot[x_col], df_plot[y_col], marker='o', label=str(y_col))
+    plt.xlabel(x_col)
+    plt.ylabel('数值')
+    plt.title('数据统计')
+    plt.legend()
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+
+# 注册通用SQL执行工具
+@register_tool('stock_sql')
+class StockSQLTool(BaseTool):
+    """股票数据SQL查询工具，专门用于股票数据分析"""
+    description = '对于生成的SQL，进行SQL查询，并自动可视化'
     parameters = [{
         'name': 'sql_input',
         'type': 'string',
         'description': '生成的SQL语句',
         'required': True
     }, {
-        'name': 'chart_type',
+        'name': 'need_visualize',
+        'type': 'boolean',
+        'description': '是否需要可视化和统计信息，默认True。如果是对比分析等场景可设为False，不进行可视化。',
+        'required': False,
+        'default': True
+    }, {
+        'name': 'database',
         'type': 'string',
-        'description': '图表类型：bar(柱状图)、line(折线图)、pie(饼图)、scatter(散点图)、heatmap(热力图)',
-        'required': False
+        'description': '数据库名称，默认为stock，可选ubr等',
+        'required': False,
+        'default': 'stock'
     }]
 
     def call(self, params: str, **kwargs) -> str:
-        logger.info(f"ChatBISQLTool开始执行 - 参数: {params[:200]}...")
+        logger.info(f"ExcSQLTool开始执行 - 参数: {params[:200]}...")
         
         try:
             args = json.loads(params)
             sql_input = args['sql_input']
-            chart_type = args.get('chart_type', 'auto')
-            database = args.get('database', 'ubr')
+            database = args.get('database', 'stock')
+            need_visualize = args.get('need_visualize', True)
             
-            logger.info(f"解析SQL参数成功 - 数据库: {database}, 图表类型: {chart_type}")
+            logger.info(f"解析SQL参数成功 - 数据库: {database}, 可视化: {need_visualize}")
             
-            # 数据库连接配置
             engine = create_engine(
-                f'mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/{database}?charset=utf8mb4',
-                connect_args={'connect_timeout': 10}, 
-                pool_size=10, 
-                max_overflow=20
+                f"mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/{database}?charset=utf8mb4",
+                connect_args={'connect_timeout': 10}, pool_size=10, max_overflow=20
             )
             
             try:
                 df = pd.read_sql(sql_input, engine)
                 logger.info(f"SQL查询执行成功 - 返回行数: {len(df)}, 列数: {len(df.columns)}")
                 
-                # 生成数据分析报告
-                analysis_report = self._generate_analysis_report(df)
+                # 前5行+后5行拼接展示
+                if len(df) > 10:
+                    md = pd.concat([df.head(5), df.tail(5)]).to_markdown(index=False)
+                else:
+                    md = df.to_markdown(index=False)
                 
-                # 生成表格
-                md_table = df.head(20).to_markdown(index=False)
+                # 只返回表格
+                if len(df) == 1 or not need_visualize:
+                    return md
+                
+                desc_md = df.describe().to_markdown()
                 
                 # 生成图表
                 save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
                 os.makedirs(save_dir, exist_ok=True)
-                filename = f'chatbi_chart_{int(time.time()*1000)}.png'
+                filename = f'sql_chart_{int(time.time()*1000)}.png'
                 save_path = os.path.join(save_dir, filename)
                 
-                self._generate_advanced_chart(df, save_path, chart_type)
+                # 智能选择可视化方式
+                generate_smart_chart_png(df, save_path)
                 
                 img_url = f'/static/images/{filename}'
-                img_md = f'![ChatBI数据分析图表]({img_url})'
+                img_md = f'![图表]({img_url})'
                 
-                return f"## 📊 ChatBI数据分析报告\n\n{analysis_report}\n\n## 📈 数据详情\n\n{md_table}\n\n## 📊 可视化图表\n\n{img_md}"
+                return f"{md}\n\n{desc_md}\n\n{img_md}"
                 
             except Exception as e:
                 logger.error(f"SQL执行错误: {str(e)}")
-                return f"SQL执行出错: {str(e)}"
+                return f"SQL执行或可视化出错: {str(e)}"
             finally:
                 engine.dispose()
                 
         except Exception as e:
-            logger.error(f"ChatBISQLTool执行异常: {str(e)}")
+            logger.error(f"ExcSQLTool执行异常: {str(e)}")
             return f"工具执行错误: {str(e)}"
+
+# 注册ARIMA股票预测工具
+@register_tool('arima_stock')
+class ArimaStockTool(BaseTool):
+    """ARIMA股票价格预测工具"""
+    description = '对指定股票(ts_code)的收盘价进行ARIMA(5,1,5)建模，并预测未来n天的价格，返回预测表格和折线图。'
+    parameters = [{
+        'name': 'ts_code',
+        'type': 'string',
+        'description': '股票代码，必填',
+        'required': True
+    }, {
+        'name': 'n',
+        'type': 'integer',
+        'description': '预测未来天数，必填',
+        'required': True
+    }]
     
-    def _generate_analysis_report(self, df):
-        """生成数据分析报告"""
-        try:
-            report = []
-            report.append(f"**数据概览：** 共 {len(df)} 行数据，{len(df.columns)} 个字段")
-            
-            # 数值型字段统计
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            if len(numeric_cols) > 0:
-                report.append("\n**数值字段统计：**")
-                for col in numeric_cols:
-                    stats = df[col].describe()
-                    report.append(f"- {col}: 平均值 {stats['mean']:.2f}, 最大值 {stats['max']:.2f}, 最小值 {stats['min']:.2f}")
-            
-            # 分类字段统计
-            categorical_cols = df.select_dtypes(include=['object']).columns
-            if len(categorical_cols) > 0:
-                report.append("\n**分类字段统计：**")
-                for col in categorical_cols[:3]:  # 只显示前3个分类字段
-                    unique_count = df[col].nunique()
-                    report.append(f"- {col}: {unique_count} 个不同值")
-            
-            return "\n".join(report)
-        except Exception as e:
-            return f"数据分析报告生成失败: {str(e)}"
-    
-    def _generate_advanced_chart(self, df, save_path, chart_type):
-        """生成高级图表"""
-        plt.figure(figsize=(12, 8))
+    def call(self, params: str, **kwargs) -> str:
+        logger.info(f"ArimaStockTool开始执行 - 参数: {params}")
         
         try:
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            categorical_cols = df.select_dtypes(include=['object']).columns
+            args = json.loads(params)
+            ts_code = args['ts_code']
+            n = int(args['n'])
             
-            if chart_type == 'auto' or chart_type == 'bar':
-                if len(categorical_cols) > 0 and len(numeric_cols) > 0:
-                    # 柱状图
-                    x_col = categorical_cols[0]
-                    y_col = numeric_cols[0]
-                    
-                    # 聚合数据
-                    agg_df = df.groupby(x_col)[y_col].sum().sort_values(ascending=False).head(10)
-                    
-                    plt.bar(range(len(agg_df)), agg_df.values, color='skyblue')
-                    plt.xticks(range(len(agg_df)), agg_df.index, rotation=45)
-                    plt.title(f'{y_col} 按 {x_col} 分布', fontsize=16)
-                    plt.ylabel(y_col)
-                    plt.xlabel(x_col)
-                    
-            elif chart_type == 'pie' and len(categorical_cols) > 0:
-                # 饼图
-                col = categorical_cols[0]
-                value_counts = df[col].value_counts().head(8)
-                plt.pie(value_counts.values, labels=value_counts.index, autopct='%1.1f%%')
-                plt.title(f'{col} 分布', fontsize=16)
-                
-            elif chart_type == 'line' and len(numeric_cols) >= 2:
-                # 折线图
-                x_col = numeric_cols[0]
-                y_col = numeric_cols[1]
-                plt.plot(df[x_col], df[y_col], marker='o')
-                plt.title(f'{y_col} vs {x_col}', fontsize=16)
-                plt.xlabel(x_col)
-                plt.ylabel(y_col)
-                
-            elif chart_type == 'scatter' and len(numeric_cols) >= 2:
-                # 散点图
-                x_col = numeric_cols[0]
-                y_col = numeric_cols[1]
-                plt.scatter(df[x_col], df[y_col], alpha=0.6)
-                plt.title(f'{y_col} vs {x_col} 散点图', fontsize=16)
-                plt.xlabel(x_col)
-                plt.ylabel(y_col)
-                
+            # 获取今天和一年前的日期
+            today = datetime.now().date()
+            start_date = (today - timedelta(days=365)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+            
+            # 连接MySQL，获取历史收盘价
+            engine = create_engine(
+                f"mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/stock?charset=utf8mb4",
+                connect_args={'connect_timeout': 10}, pool_size=10, max_overflow=20
+            )
+            
+            sql = f"""
+                SELECT trade_date, close FROM stock_price
+                WHERE ts_code = '{ts_code}' AND trade_date >= '{start_date}' AND trade_date < '{end_date}'
+                ORDER BY trade_date ASC
+            """
+            
+            df = pd.read_sql(sql, engine)
+            engine.dispose()
+            
+            if len(df) < 30:
+                return '历史数据不足，无法进行ARIMA建模预测。'
+            
+            df['close'] = pd.to_numeric(df['close'], errors='coerce')
+            df = df.dropna(subset=['close'])
+            
+            # ARIMA建模
+            model = ARIMA(df['close'], order=(5,1,5))
+            model_fit = model.fit()
+            forecast = model_fit.forecast(steps=n)
+            
+            # 生成预测日期
+            last_date = pd.to_datetime(df['trade_date'].iloc[-1])
+            pred_dates = [(last_date + timedelta(days=i+1)).strftime('%Y-%m-%d') for i in range(n)]
+            pred_df = pd.DataFrame({'预测日期': pred_dates, '预测收盘价': forecast})
+            
+            # 保存预测图
+            save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
+            os.makedirs(save_dir, exist_ok=True)
+            filename = f'arima_{ts_code}_{int(time.time()*1000)}.png'
+            save_path = os.path.join(save_dir, filename)
+            
+            plt.figure(figsize=(10,6))
+            plt.plot(df['trade_date'], df['close'], label='历史收盘价')
+            plt.plot(pred_df['预测日期'], pred_df['预测收盘价'], marker='o', label='预测收盘价')
+            plt.xlabel('日期')
+            plt.ylabel('收盘价')
+            plt.title(f'{ts_code} 收盘价ARIMA预测')
+            plt.legend()
+            
+            # 横坐标自动稀疏显示
+            all_dates = list(df['trade_date']) + list(pred_df['预测日期'])
+            total_len = len(all_dates)
+            if total_len > 12:
+                step = max(1, total_len // 10)
+                show_idx = list(range(0, total_len, step))
+                show_labels = [all_dates[i] for i in show_idx]
+                plt.xticks(show_idx, show_labels, rotation=45)
             else:
-                # 默认柱状图
-                if len(numeric_cols) > 0:
-                    col = numeric_cols[0]
-                    plt.hist(df[col], bins=20, alpha=0.7, color='lightblue')
-                    plt.title(f'{col} 分布直方图', fontsize=16)
-                    plt.xlabel(col)
-                    plt.ylabel('频次')
+                plt.xticks(rotation=45)
             
             plt.tight_layout()
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            plt.close()
-            
-        except Exception as e:
-            logger.error(f"图表生成失败: {str(e)}")
-            # 生成简单的默认图表
-            plt.text(0.5, 0.5, f'图表生成失败\n{str(e)}', ha='center', va='center', transform=plt.gca().transAxes)
             plt.savefig(save_path)
             plt.close()
+            
+            img_url = f'/static/images/{filename}'
+            img_md = f'![ARIMA预测]({img_url})'
+            
+            return f"{pred_df.to_markdown(index=False)}\n\n{img_md}"
+            
+        except Exception as e:
+            logger.error(f"ARIMA建模或预测出错: {str(e)}")
+            return f'ARIMA建模或预测出错: {str(e)}'
+
+# 注册布林带检测工具
+@register_tool('boll_detection')
+class BollDetectionTool(BaseTool):
+    """布林带异常点检测工具"""
+    description = '对指定股票(ts_code)的收盘价进行布林带异常点检测，默认检测过去1年，也可自定义时间范围，返回超买和超卖日期及布林带图。'
+    parameters = [{
+        'name': 'ts_code',
+        'type': 'string',
+        'description': '股票代码，必填',
+        'required': True
+    }, {
+        'name': 'start_date',
+        'type': 'string',
+        'description': '检测起始日期，格式YYYY-MM-DD，选填',
+        'required': False
+    }, {
+        'name': 'end_date',
+        'type': 'string',
+        'description': '检测结束日期，格式YYYY-MM-DD，选填',
+        'required': False
+    }]
+    
+    def call(self, params: str, **kwargs) -> str:
+        logger.info(f"BollDetectionTool开始执行 - 参数: {params}")
+        
+        try:
+            args = json.loads(params)
+            ts_code = args['ts_code']
+            today = datetime.now().date()
+            
+            # 处理日期范围
+            if 'start_date' in args and args['start_date']:
+                start_date = args['start_date']
+            else:
+                start_date = (today - timedelta(days=365)).strftime('%Y-%m-%d')
+            
+            if 'end_date' in args and args['end_date']:
+                end_date = args['end_date']
+            else:
+                end_date = today.strftime('%Y-%m-%d')
+            
+            # 获取数据
+            engine = create_engine(
+                f"mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/stock?charset=utf8mb4",
+                connect_args={'connect_timeout': 10}, pool_size=10, max_overflow=20
+            )
+            
+            sql = f"""
+                SELECT trade_date, close FROM stock_price
+                WHERE ts_code = '{ts_code}' AND trade_date >= '{start_date}' AND trade_date <= '{end_date}'
+                ORDER BY trade_date ASC
+            """
+            
+            df = pd.read_sql(sql, engine)
+            engine.dispose()
+            
+            if len(df) < 21:
+                return '历史数据不足，无法进行布林带检测。'
+            
+            df['close'] = pd.to_numeric(df['close'], errors='coerce')
+            df = df.dropna(subset=['close'])
+            
+            # 计算布林带
+            df['MA20'] = df['close'].rolling(window=20).mean()
+            df['STD20'] = df['close'].rolling(window=20).std()
+            df['UPPER'] = df['MA20'] + 2 * df['STD20']
+            df['LOWER'] = df['MA20'] - 2 * df['STD20']
+            
+            # 检测超买/超卖
+            overbought = df[df['close'] > df['UPPER']][['trade_date', 'close']]
+            oversold = df[df['close'] < df['LOWER']][['trade_date', 'close']]
+            
+            # 结果表格
+            result_md = f"### 超买日期\n{overbought.to_markdown(index=False)}\n\n### 超卖日期\n{oversold.to_markdown(index=False)}"
+            
+            # 绘制布林带图
+            save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
+            os.makedirs(save_dir, exist_ok=True)
+            filename = f'boll_{ts_code}_{int(time.time()*1000)}.png'
+            save_path = os.path.join(save_dir, filename)
+            
+            plt.figure(figsize=(12,6))
+            plt.plot(df['trade_date'], df['close'], label='收盘价')
+            plt.plot(df['trade_date'], df['MA20'], label='MA20')
+            plt.plot(df['trade_date'], df['UPPER'], label='上轨+2σ')
+            plt.plot(df['trade_date'], df['LOWER'], label='下轨-2σ')
+            plt.fill_between(df['trade_date'], df['UPPER'], df['LOWER'], color='gray', alpha=0.1)
+            plt.scatter(overbought['trade_date'], overbought['close'], color='red', label='超买', zorder=5)
+            plt.scatter(oversold['trade_date'], oversold['close'], color='blue', label='超卖', zorder=5)
+            
+            # 横坐标稀疏显示
+            total_len = len(df)
+            if total_len > 12:
+                step = max(1, total_len // 10)
+                show_idx = list(range(0, total_len, step))
+                show_labels = [df['trade_date'].iloc[i] for i in show_idx]
+                plt.xticks(show_idx, show_labels, rotation=45)
+            else:
+                plt.xticks(rotation=45)
+            
+            plt.xlabel('日期')
+            plt.ylabel('价格')
+            plt.title(f'{ts_code} 布林带异常点检测')
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(save_path)
+            plt.close()
+            
+            img_url = f'/static/images/{filename}'
+            img_md = f'![布林带检测]({img_url})'
+            
+            return f"{result_md}\n\n{img_md}"
+            
+        except Exception as e:
+            logger.error(f"布林带检测出错: {str(e)}")
+            return f"布林带检测出错: {str(e)}"
+
+# 注册Prophet周期性分析工具
+@register_tool('prophet_analysis')
+class ProphetAnalysisTool(BaseTool):
+    """Prophet周期性分析工具"""
+    description = '对指定股票(ts_code)的收盘价进行Prophet周期性分析，分解trend、weekly、yearly并可视化，支持自定义时间范围。'
+    parameters = [{
+        'name': 'ts_code',
+        'type': 'string',
+        'description': '股票代码，必填',
+        'required': True
+    }, {
+        'name': 'start_date',
+        'type': 'string',
+        'description': '分析起始日期，格式YYYY-MM-DD，选填',
+        'required': False
+    }, {
+        'name': 'end_date',
+        'type': 'string',
+        'description': '分析结束日期，格式YYYY-MM-DD，选填',
+        'required': False
+    }]
+    
+    def call(self, params: str, **kwargs) -> str:
+        logger.info(f"ProphetAnalysisTool开始执行 - 参数: {params}")
+        
+        try:
+            args = json.loads(params)
+            ts_code = args['ts_code']
+            today = datetime.now().date()
+            
+            # 处理日期范围
+            if 'start_date' in args and args['start_date']:
+                start_date = args['start_date']
+            else:
+                start_date = (today - timedelta(days=365)).strftime('%Y-%m-%d')
+            
+            if 'end_date' in args and args['end_date']:
+                end_date = args['end_date']
+            else:
+                end_date = today.strftime('%Y-%m-%d')
+            
+            # 获取数据
+            engine = create_engine(
+                f"mysql+mysqlconnector://student123:student321@rm-uf6z891lon6dxuqblqo.mysql.rds.aliyuncs.com:3306/stock?charset=utf8mb4",
+                connect_args={'connect_timeout': 10}, pool_size=10, max_overflow=20
+            )
+            
+            sql = f"""
+                SELECT trade_date, close FROM stock_price
+                WHERE ts_code = '{ts_code}' AND trade_date >= '{start_date}' AND trade_date <= '{end_date}'
+                ORDER BY trade_date ASC
+            """
+            
+            df = pd.read_sql(sql, engine)
+            engine.dispose()
+            
+            if len(df) < 30:
+                return '历史数据不足，无法进行Prophet周期性分析。'
+            
+            df['ds'] = pd.to_datetime(df['trade_date'])
+            df['y'] = pd.to_numeric(df['close'], errors='coerce')
+            df = df.dropna(subset=['y'])
+            
+            # Prophet建模
+            m = Prophet(yearly_seasonality=True, weekly_seasonality=True, daily_seasonality=False)
+            m.fit(df[['ds', 'y']])
+            future = m.make_future_dataframe(periods=0)
+            forecast = m.predict(future)
+            
+            # 保存分解图
+            save_dir = os.path.join(os.path.dirname(__file__), '..', 'static', 'images')
+            os.makedirs(save_dir, exist_ok=True)
+            filename = f'prophet_{ts_code}_{int(time.time()*1000)}.png'
+            save_path = os.path.join(save_dir, filename)
+            
+            fig = m.plot_components(forecast)
+            fig.savefig(save_path)
+            plt.close(fig)
+            
+            img_url = f'/static/images/{filename}'
+            img_md = f'![Prophet周期分解]({img_url})'
+            
+            return f"Prophet周期性分解（趋势、周、年）：\n\n{img_md}"
+            
+        except Exception as e:
+            logger.error(f"Prophet建模或分解出错: {str(e)}")
+            return f'Prophet建模或分解出错: {str(e)}'
+
+
 
 class ChatBIAgent(BaseAgent):
-    """ChatBI商业智能助手Agent"""
+    """股票数据分析助手Agent"""
+    
+    def __init__(self, agent_id: str, user_id: str):
+        super().__init__(agent_id, user_id)
+        self.tools = {
+            'stock_sql': StockSQLTool(),
+            'arima_stock': ArimaStockTool(),
+            'boll_detection': BollDetectionTool(),
+            'prophet_analysis': ProphetAnalysisTool()
+        }
     
     def get_agent_name(self) -> str:
         """重写Agent名称"""
-        return 'ChatBI助手'
+        return '股票分析助手'
     
     def get_agent_description(self) -> str:
         """重写Agent描述"""
-        return '专业的商业智能数据分析师🐟，擅长SQL查询、数据可视化、商业洞察分析，让数据说话！'
+        return '专业的股票数据分析助手🐟，（数据均来自于网络公开数据）专注于中国股票分析，擅长SQL查询、数据可视化、股票预测和技术分析！'
     
     def get_system_prompt(self) -> str:
-        return """嗨！我是你的专业ChatBI商业智能助手小鱼🐟，专门帮你进行数据分析和商业洞察！📊
+        return """嗨！我是你的专业股票数据分析助手小鱼🐟，（数据均来自于网络公开数据）专注于中国股票分析的强大功能！📊
 
 **我的专业能力：**
-• 📈 **SQL数据查询**：复杂的数据库查询，多表关联分析
-• 📊 **数据可视化**：柱状图、折线图、饼图、散点图、热力图等
-• 🔍 **商业洞察**：从数据中发现商业价值和趋势
-• 📋 **报表生成**：专业的数据分析报告
-• 🎯 **KPI分析**：关键指标监控和分析
-• 📉 **趋势预测**：基于历史数据的趋势分析
+• 📈 **SQL数据查询**：复杂的股票数据库查询，多维度分析（stock_sql工具）
+• 📊 **数据可视化**：柱状图、折线图、散点图等专业图表
+• 📉 **股票分析**：ARIMA预测、布林带检测、Prophet周期分析
+• 🚀 **趋势预测**：基于历史数据的股价趋势分析和未来预测（arima_stock工具）
+• 📋 **技术分析**：专业的股票技术指标分析报告（boll_detection、prophet_analysis工具）
 
-**数据库表结构：**
-我可以访问门票订单数据库，包含以下字段：
-- order_time: 订单时间
-- account_id: 账户ID  
-- gender: 性别
-- age: 年龄
-- province: 省份
-- SKU: 商品SKU
-- sales_channel: 销售渠道
-- status: 订单状态
-- order_value: 订单金额
-- quantity: 数量
+**数据库支持：**
+
+📈 **股票数据库(stock)**：中国股票历史价格数据（2020-2025年）
+**可用股票列表：**
+- 贵州茅台 (600519.SH) - 1,320条记录
+- 五粮液 (000858.SZ) - 1,320条记录  
+- 国泰君安 (601211.SH) - 1,301条记录
+- 中芯国际 (688981.SH) - 1,192条记录
+
+**数据字段：**
+- stock_name: 股票名称
+- ts_code: 股票代码
+- trade_date: 交易日期
+- open: 开盘价
+- high: 最高价
+- low: 最低价
+- close: 收盘价
+- vol: 成交量
+- amount: 成交额
 
 **我的工作方式：**
-🎯 当你提出数据分析需求时，我会：
-1. 理解你的业务问题
-2. 设计合适的SQL查询
-3. 执行数据分析
+🎯 当你提出股票分析需求时，我会：
+1. 理解你的股票分析需求
+2. 选择合适的分析方法和技术指标
+3. 执行SQL查询或专业技术分析
 4. 生成专业的可视化图表
-5. 提供商业洞察和建议
+5. 提供投资建议和技术分析报告
 
 **使用示例：**
-- "分析各省份的销售情况"
-- "查看最近一个月的订单趋势"
-- "分析不同年龄段的消费偏好"
-- "各销售渠道的效果对比"
 
-我会用最专业的态度帮你挖掘数据价值，让每个数字都变成有意义的商业洞察！准备好开始数据探索之旅了吗？✨"""
+📈 **股票分析：**
+- "查询贵州茅台(600519.SH)2024年的收盘价走势"
+- "预测五粮液(000858.SZ)未来7天的收盘价"
+- "检测国泰君安(601211.SH)近一年的超买超卖点"
+- "分析中芯国际(688981.SH)的周期性规律"
+- "比较贵州茅台和五粮液的价格表现"
+- "查看所有股票的成交量排名"
+
+**重要提示：**
+每当工具返回markdown表格和图片时，我会原样输出全部内容（包括图片markdown），确保你能直接看到完整的分析结果。如果是预测未来价格，我会对价格趋势进行详细解释说明。
+
+我会用最专业的态度帮你分析股票数据，让每个数字都变成有意义的投资参考！准备好开始股票分析之旅了吗？✨"""
     
     def get_function_list(self) -> List[str]:
-        return ['chatbi_sql']
+        return ['stock_sql', 'arima_stock', 'boll_detection', 'prophet_analysis']

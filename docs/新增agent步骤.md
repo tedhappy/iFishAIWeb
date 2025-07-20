@@ -55,25 +55,25 @@ flask_backend/
 ```typescript
 {
   avatar: "1f4ca",                    // emoji代码，用作头像
-  name: "ChatBI",                     // Agent显示名称
+  name: "股票分析助手",                // Agent显示名称
   agentType: "chatbi",                // Agent类型标识（重要：用于路由）
   context: [                          // 预设对话上下文
     {
       id: "chatbi-0",
       role: "system",
-      content: "我是ChatBI助手，专门用于数据分析和可视化...",
+      content: "我是股票分析助手，专门用于中国股票数据分析...",
       date: ""
     },
     {
       id: "chatbi-1",
       role: "user", 
-      content: "你能帮我分析数据吗？",
+      content: "你能帮我分析股票吗？",
       date: ""
     },
     {
       id: "chatbi-2",
       role: "assistant",
-      content: "当然可以！我可以帮您进行数据分析...",
+      content: "当然可以！我可以帮您进行股票分析...",
       date: ""
     }
   ],
@@ -103,13 +103,13 @@ flask_backend/
 // 在 AGENT_QUESTIONS_CONFIG 数组中添加新的Agent配置
 {
   agentType: "chatbi",
-  name: "ChatBI",
+  name: "股票分析助手",
   questions: [
-    "帮我分析销售数据趋势",
-    "生成用户行为分析报告", 
-    "创建数据可视化图表"
+    "查询贵州茅台2024年全年收盘价走势并生成图表",
+    "对比分析中芯国际和五粮液近半年的涨跌幅", 
+    "使用ARIMA模型预测国泰君安未来7天股价"
   ],
-  description: "专业的数据分析和可视化助手"
+  description: "专业的中国股票数据分析助手"
 }
 ```
 
@@ -141,23 +141,23 @@ from typing import List, Dict, Any, Optional
 from utils.logger import logger
 
 class ChatBIAgent(BaseAgent):
-    """ChatBI数据分析Agent"""
+    """股票数据分析助手Agent"""
     
     def get_agent_name(self) -> str:
         """重写Agent名称"""
-        return "ChatBI"
+        return "股票分析助手"
     
     def get_agent_description(self) -> str:
         """重写Agent描述"""
-        return "专业的数据分析和可视化助手📊"
+        return "专业的中国股票数据分析助手📊"
     
     def get_system_prompt(self) -> str:
         """获取系统提示词"""
-        return """我是ChatBI数据分析助手，专门用于数据分析和可视化..."""
+        return """我是股票分析助手，专门用于中国股票数据分析..."""
     
     def get_function_list(self) -> List[str]:
         """获取可用的工具函数列表"""
-        return []  # 根据需要返回工具列表
+        return ['chatbi_exc_sql', 'arima_stock', 'boll_detection', 'prophet_analysis']  # 股票分析工具列表
     
     def get_mcp_config(self) -> Optional[Dict[str, Any]]:
         """重写MCP配置（可选）"""
@@ -564,7 +564,7 @@ class MyAgent(BaseAgent):
 
 1. **提交规范**
    ```
-   feat(agent): 新增ChatBI数据分析Agent
+   feat(agent): 新增股票分析助手Agent
    fix(agent): 修复美食推荐Agent响应问题
    docs(agent): 更新Agent开发文档
    ```

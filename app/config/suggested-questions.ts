@@ -119,20 +119,24 @@ export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
     agentName: "ChatBI助手",
     defaultQuestions: [
       {
-        id: "chatbi-analysis-1",
-        text: "请展示如何使用SQL分析电商平台各省份销售数据，包括查询语句和可视化图表示例",
+        id: "chatbi-stock-compare-1",
+        text: "对比2024年贵州茅台和五粮液的股价表现",
       },
       {
-        id: "chatbi-trend-1",
-        text: "演示订单趋势分析的完整流程：从数据提取、清洗到生成趋势图表的具体步骤",
+        id: "chatbi-stock-arima-1",
+        text: "预测贵州茅台未来7天的收盘价",
       },
       {
-        id: "chatbi-insight-1",
-        text: "提供用户画像分析模板：如何按年龄段分析消费行为，包括指标选择和洞察提取方法",
+        id: "chatbi-stock-prophet-1",
+        text: "分析国泰君安近一年的周期性规律",
+      },
+      {
+        id: "chatbi-stock-boll-1",
+        text: "检测中芯国际近一年的超买超卖点",
       },
     ],
     description:
-      "专业的商业智能数据分析师🐟，擅长SQL查询、数据可视化、商业洞察分析，让数据说话！",
+      "专业的股票数据分析助手🐟，专注于股票分析（贵州茅台、五粮液、国泰君安、中芯国际），提供SQL查询、数据可视化、股票预测和技术分析！",
   },
   {
     agentType: "text_to_image",

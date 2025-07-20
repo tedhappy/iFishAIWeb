@@ -3,27 +3,27 @@ import { BuiltinMask } from "./typing";
 export const CN_MASKS: BuiltinMask[] = [
   {
     avatar: "1f4ca",
-    name: "ChatBI",
+    name: "ChatBI助手",
     agentType: "chatbi",
     context: [
       {
         id: "chatbi-0",
         role: "system",
         content:
-          "我是ChatBI助手，专门用于数据分析和可视化。我可以执行SQL查询、分析数据并生成各种图表，让您的数据洞察更加直观清晰。",
+          "我是股票分析助手，（数据均来自于网络公开数据）专业的股票数据分析助手。我可以执行股票数据查询、分析股价走势、生成技术分析图表，还能进行股票预测和技术分析，让您的股票投资决策更加明智。",
         date: "",
       },
       {
         id: "chatbi-1",
         role: "user",
-        content: "你能帮我分析数据吗？",
+        content: "你能帮我分析股票吗？",
         date: "",
       },
       {
         id: "chatbi-2",
         role: "assistant",
         content:
-          "当然可以！我可以帮您进行数据分析，包括：\n1. SQL查询执行\n2. 数据统计分析\n3. 可视化图表生成\n4. 趋势分析报告\n\n请告诉我您的数据需求，我会为您提供专业的分析服务。",
+          "当然可以！我可以帮您进行股票分析，包括：\n1. 股票数据查询和统计分析\n2. 股价走势图表生成和趋势分析\n3. 股票价格预测（ARIMA模型）\n4. 布林带技术分析和超买超卖检测\n5. Prophet周期性分析\n\n请告诉我您想分析的股票（如贵州茅台、五粮液、国泰君安、中芯国际等），我会为您提供专业的股票分析服务。",
         date: "",
       },
     ],

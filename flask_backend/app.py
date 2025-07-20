@@ -131,5 +131,35 @@ def health_check():
         'mcp_enabled': app.config.get('ENABLE_MCP', False)
     })
 
+def is_development_environment():
+    """根据环境变量判断是否为开发环境
+    
+    通过检查NEXT_PUBLIC_API_BASE_URL是否包含localhost来判断环境类型
+    开发环境通常使用localhost，生产环境使用域名
+    
+    Returns:
+        bool: True表示开发环境，False表示生产环境
+    """
+    api_base_url = os.getenv('NEXT_PUBLIC_API_BASE_URL', '')
+    
+    # 判断是否为开发环境的条件
+    is_dev = (
+        'localhost' in api_base_url.lower() or 
+        '127.0.0.1' in api_base_url or
+        api_base_url.startswith('http://localhost') or
+        api_base_url.startswith('http://127.0.0.1')
+    )
+    
+    logger.info(f"环境检测 - API_BASE_URL: {api_base_url}, 判定为: {'开发环境' if is_dev else '生产环境'}")
+    return is_dev
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    # 根据环境变量动态设置debug模式
+    debug_mode = is_development_environment()
+    
+    if debug_mode:
+        logger.info("启动开发模式 - 启用debug模式和文件监控")
+    else:
+        logger.info("启动生产模式 - 禁用debug模式")
+    
+    app.run(debug=debug_mode, port=5000, host='0.0.0.0')
