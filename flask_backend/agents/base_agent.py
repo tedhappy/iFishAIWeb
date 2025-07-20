@@ -525,7 +525,8 @@ class BaseAgent(ABC):
         self._pending_tool_status.append(tool_status_msg)
         
         # 检查工具完成状态，如果包含图表信息则发送chart消息
-        if status_info['type'] == 'completed' and 'result' in status_info:
+        # 支持多种完成状态类型：completed, success, tool_success
+        if status_info['type'] in ['completed', 'success', 'tool_success'] and 'result' in status_info:
             logger.info(f"[{self.session_id}] [图表检测] 工具完成，检查结果中是否包含图表: {status_info['result'][:200]}...")
             chart_info = self._extract_chart_info(status_info['result'])
             if chart_info:

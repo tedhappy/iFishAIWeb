@@ -25,13 +25,18 @@ plt.rcParams['axes.unicode_minus'] = False
 # 通用图表生成函数
 def generate_smart_chart_png(df_sql, save_path):
     """智能选择可视化方式"""
+    
+    logger.info(f"[图表生成] 开始生成图表，数据行数: {len(df_sql)}, 列数: {len(df_sql.columns)}, 保存路径: {save_path}")
+    
     columns = df_sql.columns
     if len(df_sql) == 0 or len(columns) < 2:
+        logger.warning(f"[图表生成] 数据不足，无法生成有效图表")
         plt.figure(figsize=(6, 4))
         plt.text(0.5, 0.5, '无可视化数据', ha='center', va='center', fontsize=16)
         plt.axis('off')
         plt.savefig(save_path)
         plt.close()
+        logger.info(f"[图表生成] 已生成空数据提示图表: {save_path}")
         return
     x_col = columns[0]
     y_cols = columns[1:]
@@ -42,9 +47,14 @@ def generate_smart_chart_png(df_sql, save_path):
         x = x.iloc[idx]
         df_plot = df_sql.iloc[idx]
         chart_type = 'line'
+        logger.info(f"[图表生成] 数据点较多({len(df_sql)}行)，采样为10个点，使用折线图")
     else:
         df_plot = df_sql
         chart_type = 'bar'
+        logger.info(f"[图表生成] 数据点较少({len(df_sql)}行)，使用柱状图")
+    
+    logger.info(f"[图表生成] X轴: {x_col}, Y轴: {list(y_cols)}, 图表类型: {chart_type}")
+    
     plt.figure(figsize=(10, 6))
     for y_col in y_cols:
         if chart_type == 'bar':
@@ -59,6 +69,8 @@ def generate_smart_chart_png(df_sql, save_path):
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+    
+    logger.info(f"[图表生成] 图表生成完成并保存到: {save_path}")
 
 # 注册通用SQL执行工具
 @register_tool('stock_sql')
@@ -318,7 +330,7 @@ class ArimaStockTool(BaseTool):
             if status_callback:
                 try:
                     status_callback({
-                        'type': 'completed',
+                        'type': 'success',
                         'message': f'ARIMA预测分析完成',
                         'tool_name': 'ArimaStockTool',
                         'result': result
@@ -377,7 +389,7 @@ class BollDetectionTool(BaseTool):
         if status_callback:
             try:
                 status_callback({
-                    'type': 'started',
+                    'type': 'tool_start',
                     'message': f'正在进行布林带异常点检测，请稍候...',
                     'tool_name': 'BollDetectionTool'
                 })
@@ -476,7 +488,7 @@ class BollDetectionTool(BaseTool):
             if status_callback:
                 try:
                     status_callback({
-                        'type': 'completed',
+                        'type': 'success',
                         'message': f'布林带异常点检测完成',
                         'tool_name': 'BollDetectionTool',
                         'result': result

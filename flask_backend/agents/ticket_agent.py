@@ -33,6 +33,20 @@ class ExcSQLTool(BaseTool):
     def call(self, params: str, **kwargs) -> str:
         logger.info(f"ExcSQLTool开始执行 - 参数: {params[:200]}...")
         
+        # 获取状态回调函数
+        status_callback = kwargs.get('status_callback')
+        
+        # 发送工具开始状态
+        if status_callback:
+            try:
+                status_callback({
+                    'type': 'tool_start',
+                    'message': f'正在执行SQL查询和数据可视化，请稍候...',
+                    'tool_name': 'ExcSQLTool'
+                })
+            except Exception as e:
+                logger.warning(f'SQL工具状态回调失败: {e}')
+        
         try:
             args = json.loads(params)
             sql_input = args['sql_input']
@@ -74,10 +88,35 @@ class ExcSQLTool(BaseTool):
                 img_md = f'![图表]({img_url})'
                 
                 logger.info(f"SQL工具执行完成 - 数据行数: {len(df)}, 列: {list(df.columns)}")
+                
+                # 发送工具完成状态
+                if status_callback:
+                    try:
+                        status_callback({
+                            'type': 'success',
+                            'message': f'SQL查询和数据可视化完成，返回{len(df)}行数据',
+                            'tool_name': 'ExcSQLTool',
+                            'result': f"{md}\n\n{img_md}"
+                        })
+                    except Exception as e:
+                        logger.warning(f'SQL工具完成状态回调失败: {e}')
+                
                 return f"{md}\n\n{img_md}"
                 
             except Exception as e:
                 logger.error(f"SQL执行错误: {str(e)}")
+                
+                # 发送工具错误状态
+                if status_callback:
+                    try:
+                        status_callback({
+                            'type': 'error',
+                            'message': f'SQL执行出错: {str(e)}',
+                            'tool_name': 'ExcSQLTool'
+                        })
+                    except Exception as cb_e:
+                        logger.warning(f'SQL工具错误状态回调失败: {cb_e}')
+                
                 return f"SQL执行出错: {str(e)}"
             finally:
                 engine.dispose()
@@ -85,9 +124,33 @@ class ExcSQLTool(BaseTool):
                 
         except json.JSONDecodeError as e:
             logger.error(f"JSON参数解析失败: {str(e)}")
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'参数解析错误: {str(e)}',
+                        'tool_name': 'ExcSQLTool'
+                    })
+                except Exception as cb_e:
+                    logger.warning(f'SQL工具错误状态回调失败: {cb_e}')
+            
             return f"参数解析错误: {str(e)}"
         except Exception as e:
             logger.error(f"ExcSQLTool执行异常: {str(e)}")
+            
+            # 发送工具错误状态
+            if status_callback:
+                try:
+                    status_callback({
+                        'type': 'error',
+                        'message': f'工具执行错误: {str(e)}',
+                        'tool_name': 'ExcSQLTool'
+                    })
+                except Exception as cb_e:
+                    logger.warning(f'SQL工具错误状态回调失败: {cb_e}')
+            
             return f"工具执行错误: {str(e)}"
     
     def _generate_chart(self, df, save_path):
