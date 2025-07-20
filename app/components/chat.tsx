@@ -12,6 +12,7 @@ import SuggestedQuestions, { validateCache } from "./suggested-questions";
 
 import SendWhiteIcon from "../icons/send-white.svg";
 import BrainIcon from "../icons/brain.svg";
+import PromptIcon from "../icons/prompt.svg";
 import MenuIcon from "../icons/menu.svg";
 import NewchatIcon from "../icons/newchat.svg";
 import CopyIcon from "../icons/copy.svg";
@@ -231,7 +232,7 @@ function PromptToast(props: {
     <div className={styles["prompt-toast"]} key="prompt-toast">
       {props.showToast && context.length > 0 && (
         <div className={clsx(styles["prompt-toast-inner"])} role="button">
-          <BrainIcon />
+          <PromptIcon />
           <span className={styles["prompt-toast-content"]}>
             {Locale.Context.Toast(context.length)}
           </span>

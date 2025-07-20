@@ -116,7 +116,7 @@ export function LoadingStatus({
     };
   };
 
-  const shouldShowRetry = stage === "error" || elapsedTime > 8; // 错误或超过8秒显示重试
+  const shouldShowRetry = false; // 隐藏重试按钮
 
   return (
     <div className={styles["loading-status"]}>
