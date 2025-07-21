@@ -150,6 +150,17 @@ yarn app:build
 
 ## 🔧 开发指南
 
+### TypeScript编译检查
+
+在开发过程中，可以使用以下命令检查TypeScript编译错误：
+
+```bash
+# 检查TypeScript编译错误（不生成输出文件）
+npx tsc --noEmit
+```
+
+该命令会检查整个项目的TypeScript代码，报告类型错误和编译问题，但不会生成JavaScript文件。这对于在开发过程中快速发现和修复类型相关的问题非常有用。
+
 ### 自定义Agent开发
 
 1. **创建Agent类**
