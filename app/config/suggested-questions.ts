@@ -160,15 +160,15 @@ export const AGENT_QUESTIONS_CONFIG: AgentQuestionsConfig[] = [
     defaultQuestions: [
       {
         id: "food-local-1",
-        text: "推荐北京5家适合商务宴请的川菜餐厅，包括地址、人均消费、特色菜品和预订方式",
+        text: "推荐北京3家适合商务宴请的餐厅",
       },
       {
         id: "food-romantic-1",
-        text: "推荐成都3家适合约会的浪漫西餐厅，人均200元以内，包括环境特色、推荐菜品和最佳座位",
+        text: "推荐成都3家适合约会的浪漫西餐厅",
       },
       {
         id: "food-gathering-1",
-        text: "推荐上海4家适合朋友聚会的热闹火锅店，包括特色锅底、聚会包间、停车信息和团购优惠",
+        text: "推荐上海2家适合朋友聚会的热闹火锅店",
       },
     ],
     description:
