@@ -26,7 +26,6 @@ import DeleteIcon from "../icons/clear.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 import CloseIcon from "../icons/close.svg";
 import CancelIcon from "../icons/cancel.svg";
-import ImageIcon from "../icons/image.svg";
 
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
@@ -633,6 +632,7 @@ export function ChatActions(props: {
           />
         )} */}
 
+        {/* 隐藏上传图片按钮 - 根据用户要求隐藏该功能
         {showUploadImage && (
           <ChatAction
             onClick={props.uploadImage}
@@ -640,6 +640,7 @@ export function ChatActions(props: {
             icon={props.uploading ? <LoadingButtonIcon /> : <ImageIcon />}
           />
         )}
+        */}
         <ChatAction
           onClick={nextTheme}
           text={Locale.Chat.InputActions.Theme[theme]}
