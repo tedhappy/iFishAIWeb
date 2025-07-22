@@ -71,14 +71,15 @@ class FortuneTellerAgent(BaseAgent):
         Returns:
             Dict[str, Any]: 包含Bazi-MCP服务的MCP配置
         """
-        return {
-            "mcpServers": {
-                "Bazi-MCP": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/ea190c87063849/sse"
-                }
-            }
-        }
+        # return {
+        #     "mcpServers": {
+        #         "Bazi-MCP": {
+        #             "type": "sse",
+        #             "url": "https://mcp.api-inference.modelscope.net/ea190c87063849/sse"
+        #         }
+        #     }
+        # }
+        return None
     
     def get_function_list(self) -> List[str]:
         return []

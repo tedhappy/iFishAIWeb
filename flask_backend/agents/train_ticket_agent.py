@@ -20,14 +20,16 @@ class TrainTicketAgent(BaseAgent):
         Returns:
             Dict[str, Any]: 包含12306-mcp工具的MCP配置
         """
-        return {
-            "mcpServers": {
-                "12306-mcp": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/df74994c8c5b46/sse"
-                }
-            }
-        }
+        # 暂时注释掉12306-mcp配置
+        # return {
+        #     "mcpServers": {
+        #         "12306-mcp": {
+        #             "type": "sse",
+        #             "url": "https://mcp.api-inference.modelscope.net/df74994c8c5b46/sse"
+        #         }
+        #     }
+        # }
+        return None
     
     def get_system_prompt(self) -> str:
         return """嗨！我是您的专业火车票查询助手🚄，基于12306官方数据为您提供准确可靠的火车出行服务！

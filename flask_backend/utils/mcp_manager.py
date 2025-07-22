@@ -64,33 +64,44 @@ class MCPManager:
         Returns:
             List[Dict[str, Any]]: MCP配置列表
         """
-        # 只保留高德地图和tavily两个重要工具
+        # 只保留高德地图、tavily和12306三个重要工具
         return [{
             "mcpServers": {
                 "amap-maps": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/acbe007a6c2c40/sse"
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "@amap/amap-maps-mcp-server"
+                    ],
+                    "env": {
+                        "AMAP_MAPS_API_KEY": "1b53684eb64e583bae01afcc981b477a"
+                    }
                 },
-                "bing-cn-mcp-server": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/b9870e09875547/sse"
-                },
-                "fetch": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/d0d14b5f47b345/sse"
-                },
-                "12306-mcp": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/df74994c8c5b46/sse"
-                },
+                # "bing-cn-mcp-server": {
+                #     "type": "sse",
+                #     "url": "https://mcp.api-inference.modelscope.net/b9870e09875547/sse"
+                # },
+                # "fetch": {
+                #     "type": "sse",
+                #     "url": "https://mcp.api-inference.modelscope.net/d0d14b5f47b345/sse"
+                # },
+                # "12306-mcp": {
+                #     "type": "sse",
+                #     "url": "https://mcp.api-inference.modelscope.net/df74994c8c5b46/sse"
+                # },
                 "tavily-mcp": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/7214e0e509b141/sse"
-                },
-                "MiniMax-MCP": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
+                    "command": "npx",
+                    "args": ["-y", "tavily-mcp@0.1.4"],
+                    "env": {
+                        "TAVILY_API_KEY": "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"
+                    },
+                    "disabled": False,
+                    "autoApprove": []
                 }
+                # "MiniMax-MCP": {
+                #     "type": "sse",
+                #     "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
+                # }
             }
         }]
     

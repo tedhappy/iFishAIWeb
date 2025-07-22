@@ -20,14 +20,21 @@ class FoodRecommendationAgent(BaseAgent):
         Returns:
             Dict[str, Any]: 包含高德地图服务的MCP配置
         """
-        return {
-            "mcpServers": {
-                "amap-maps": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/acbe007a6c2c40/sse"
-                }
-            }
-        }
+        # return {
+        #     "mcpServers": {
+        #         "amap-maps": {
+        #             "command": "npx",
+        #             "args": [
+        #                 "-y",
+        #                 "@amap/amap-maps-mcp-server"
+        #             ],
+        #             "env": {
+        #                 "AMAP_MAPS_API_KEY": "1b53684eb64e583bae01afcc981b477a"
+        #             }
+        #         },
+        #     }
+        # }
+        return None
     
     def get_system_prompt(self) -> str:
         return """嗨！我是你的专业美食推荐助手小鱼🐟，专门帮你发现最棒的美食和餐厅！🍽️

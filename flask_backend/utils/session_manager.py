@@ -31,8 +31,8 @@ class SessionManager:
             'chatbi': ChatBIAgent,  # 股票分析助手
             # 'text_to_image': TextToImageAgent,  # 隐藏AI文生图助手
             'food_recommendation': FoodRecommendationAgent,  # 美食推荐助手
-            'train_ticket': TrainTicketAgent,  # 火车票查询助手
-            'fortune_teller': FortuneTellerAgent,  # 算命先生助手
+            # 'train_ticket': TrainTicketAgent,  # 火车票查询助手
+            # 'fortune_teller': FortuneTellerAgent,  # 算命先生助手
             'default': GeneralAgent  # 默认使用通用助手
         }
         # Logger已通过导入的logger模块统一管理

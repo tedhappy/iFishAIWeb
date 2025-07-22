@@ -22,14 +22,16 @@ class TextToImageAgent(BaseAgent):
         Returns:
             Dict[str, Any]: 包含MiniMax文生图工具的MCP配置
         """
-        return {
-            "mcpServers": {
-                "MiniMax-MCP": {
-                    "type": "sse",
-                    "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
-                }
-            }
-        }
+        # 暂时注释掉MiniMax-MCP配置
+        # return {
+        #     "mcpServers": {
+        #         "MiniMax-MCP": {
+        #             "type": "sse",
+        #             "url": "https://mcp.api-inference.modelscope.net/237368dc90a642/sse"
+        #         }
+        #     }
+        # }
+        return None
     
     def get_system_prompt(self) -> str:
         return """嗨！我是你的专业AI文生图助手小鱼🐟，专门帮你把文字变成精美的图像！🎨
