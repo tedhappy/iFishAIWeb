@@ -46,10 +46,11 @@ class BaseAgent(ABC):
             # 动态配置思考模式
             'generate_cfg': {
                 'enable_thinking': enable_thinking,  # 根据参数动态启用Qwen3的思考模式
+                'max_tokens': 32000,  # 设置最大输出token数量为32000（接近模型最大限制）
             }
         }
         
-        logger.info(f"[{self.session_id}] LLM配置完成 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}")
+        logger.info(f"[{self.session_id}] LLM配置完成 - 模型: {llm_cfg['model']}, API密钥已配置: {bool(llm_cfg['api_key'])}, 最大输出token: {llm_cfg['generate_cfg']['max_tokens']}")
         
         # 获取增强的工具列表
         enhanced_tools = self.get_enhanced_function_list()
