@@ -6,26 +6,31 @@
 
 **立即体验：小鱼AI [www.ifish.me](https://www.ifish.me)**
 
-## 📸 产品截图
+## 📸 部分截图
 
+<!-- 前两张截图在一行 -->
 <div style="display: flex; flex-wrap: wrap; gap: 20px; margin: 20px 0; justify-content: center;">
+  <div style="text-align: center; flex: 0 0 300px;">
+    <img src="docs/images/main-interface.png" alt="主界面" width="300" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center; flex: 0 0 300px;">
+    <img src="docs/images/chat-interface.png" alt="聊天界面" width="300" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+</div>
+
+<!-- 后面四张截图在一行 -->
+<div style="display: flex; flex-wrap: wrap; gap: 0px; margin: 20px 0; justify-content: center;">
   <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/main-interface.png" alt="主界面" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/agent-features.jpg" alt="Agent功能" width="100" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/chat-interface.png" alt="聊天界面" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/tools-ecosystem.jpg" alt="工具生态" width="100" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/agent-features.jpg" alt="Agent功能" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/multi-model-support.jpg" alt="多模型支持" width="100" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/tools-ecosystem.jpg" alt="工具生态" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-  </div>
-  <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/multi-model-support.jpg" alt="多模型支持" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-  </div>
-  <div style="text-align: center; flex: 0 0 200px;">
-    <img src="docs/images/configuration-panel.jpg" alt="配置面板" width="200" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/configuration-panel.jpg" alt="配置面板" width="100" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
 </div>
 
@@ -222,7 +227,7 @@ MIT License
 
 欢迎提交Issue和Pull Request来帮助改进项目！
 
-## ☕ 支持项目
+## ☕ 请我喝咖啡
 
 如果这个项目对您有帮助，欢迎请我喝杯咖啡！您的支持是我持续开发和维护项目的动力。
 
