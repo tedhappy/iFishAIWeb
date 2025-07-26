@@ -10,22 +10,22 @@
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
   <div style="text-align: center;">
-    <img src="docs/images/main-interface.png" alt="主界面" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/main-interface.png" alt="主界面" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center;">
-    <img src="docs/images/chat-interface.png" alt="聊天界面" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/chat-interface.png" alt="聊天界面" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center;">
-    <img src="docs/images/agent-features.jpg" alt="Agent功能" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/agent-features.jpg" alt="Agent功能" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center;">
-    <img src="docs/images/tools-ecosystem.jpg" alt="工具生态" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/tools-ecosystem.jpg" alt="工具生态" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center;">
-    <img src="docs/images/multi-model-support.jpg" alt="多模型支持" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/multi-model-support.jpg" alt="多模型支持" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
   <div style="text-align: center;">
-    <img src="docs/images/configuration-panel.jpg" alt="配置面板" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <img src="docs/images/configuration-panel.jpg" alt="配置面板" width="200" style="max-width: 300px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
   </div>
 </div>
 
