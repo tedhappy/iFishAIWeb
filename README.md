@@ -8,19 +8,26 @@
 
 ## 📸 产品截图
 
-### 桌面端聊天展示
-![主界面](docs/images/main-interface.png)
-![聊天界面](docs/images/chat-interface.png)
-
-### 移动端聊天界面
-![Agent功能](docs/images/agent-features.jpg)
-![工具生态](docs/images/tools-ecosystem.jpg)
-
-### 多Agent支持
-![多模型支持](docs/images/multi-model-support.jpg)
-
-### 对话管理
-![配置面板](docs/images/configuration-panel.jpg)
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+  <div style="text-align: center;">
+    <img src="docs/images/main-interface.png" alt="主界面" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center;">
+    <img src="docs/images/chat-interface.png" alt="聊天界面" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center;">
+    <img src="docs/images/agent-features.jpg" alt="Agent功能" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center;">
+    <img src="docs/images/tools-ecosystem.jpg" alt="工具生态" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center;">
+    <img src="docs/images/multi-model-support.jpg" alt="多模型支持" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+  <div style="text-align: center;">
+    <img src="docs/images/configuration-panel.jpg" alt="配置面板" width="100%" style="max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  </div>
+</div>
 
 ## ✨ 核心特性
 
@@ -219,7 +226,7 @@ MIT License
 
 如果这个项目对您有帮助，欢迎请我喝杯咖啡！您的支持是我持续开发和维护项目的动力。
 
-![请我喝杯咖啡](docs/images/donate.jpg)
+<img src="docs/images/donate.jpg" alt="请我喝杯咖啡" width="300">
 
 *扫码支持项目发展 - 每一份支持都是对开源精神的鼓励*
 
